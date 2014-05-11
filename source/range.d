@@ -41,6 +41,21 @@ import carbon.templates;
 
 
 /**
+true if isInputRange!R is true and isInputRange!R is false.
+*/
+enum isSimpleRange(R, alias I = isInputRange) = 
+    I!(R) && !I!(ElementType!R);
+
+
+/**
+true if both isInputRange!R and isInputRange!R are true.
+*/
+enum isRangeOfRanges(R, alias I = isInputRange) = 
+    I!(R) && I!(ElementType!R);
+
+
+
+/**
 あるレンジのN個の連続する要素のリストを返します。
 
 Example:
@@ -1369,4 +1384,236 @@ unittest
     assert(equal(sg.take(3), [tuple(2, 2, 3), tuple(2, 3, 4), tuple(3, 4, 2)]));
     assert(equal(sg.retro.take(3), [tuple(2, 2, 3), tuple(2, 2, 2), tuple(4, 2, 2)]));
     assert(!sg.empty);
+}
+
+
+/**
+concats elements
+*/
+auto concat(R)(R range) if (isRangeOfRanges!R)
+{
+    static struct Concat
+    {
+      private:
+        R _range;
+        alias ElementType!R ET0;
+        alias ElementType!ET0 ET1;
+        ET0 _subrange;
+
+      static if(isRangeOfRanges!(R, isBidirectionalRange))
+      {
+        ET0 _backSubrange;
+      }
+
+      public:
+      static if(isInfinite!R)
+        enum bool empty = false;
+      else
+      {
+        @property
+        bool empty()
+        {
+            return _range.empty;
+        }
+      }
+
+
+        @property
+        auto ref front()
+        {
+            return _subrange.front;
+        }
+
+
+      static if(hasAssignableElements!ET0)
+      {
+        @property
+        void front(ET1 v)
+        {
+            _subrange.front = v;
+        }
+      }
+
+
+      /*
+      static if(isRangeOfRange!(R, isForwardRange))
+      {
+        @property
+        Concat save()
+        {
+            return this;
+        }
+      }
+      */
+
+
+        void popFront()
+        {
+            if (!_subrange.empty) _subrange.popFront;
+
+            while(_subrange.empty && !_range.empty){
+                _range.popFront;
+
+                if (!_range.empty)
+                    _subrange = _range.front;
+            }
+        }
+
+
+      static if (isRangeOfRanges!(R, isBidirectionalRange))
+      {
+        @property
+        auto ref back()
+        {
+            return _backSubrange.back;
+        }
+
+
+        static if(hasAssignableElements!ET0)
+        {
+            @property
+            void back(ET1 v)
+            {
+                _backSubrange.back = v;
+            }
+        }
+
+
+        void popBack()
+        {
+            if (!_backSubrange.empty) _backSubrange.popBack;
+
+            while (_backSubrange.empty && !_range.empty) {
+                _range.popBack;
+                if (!_range.empty) _backSubrange = _range.back;
+            }
+        }
+
+
+        auto retro() @property
+        {
+            static struct RetroConcat
+            {
+                auto ref front() @property
+                {
+                    return _r.back;
+                }
+
+
+                auto ref back() @property
+                {
+                    return _r.front;
+                }
+
+
+              static if(hasAssignableElements!ET0)
+              {
+                void front(ET1 v) @property
+                {
+                    _r.back = v;
+                }
+
+
+                void back(ET1 v) @property
+                {
+                    _r.front = v;
+                }
+              }
+
+
+                void popFront()
+                {
+                    _r.popBack();
+                }
+
+
+                void popBack()
+                {
+                    _r.popFront();
+                }
+
+
+              static if(isInfinite!R)
+                enum bool empty = false;
+              else
+                bool empty() @property
+                {
+                    return _r.empty;
+                }
+
+
+                // save..
+
+
+                auto retro() @property
+                {
+                    return _r;
+                }
+
+
+              private:
+                Concat _r;
+            }
+
+
+            return RetroConcat(this);
+        }
+      }
+    }
+
+
+    Concat dst;
+    dst._range = range;
+
+    if (!dst._range.empty){
+        dst._subrange = dst._range.front;
+        while (dst._subrange.empty && !dst._range.empty){
+            dst._range.popFront;
+            if (!dst._range.empty) dst._subrange = dst._range.front;
+        }
+
+      static if (isRangeOfRanges!(R, isBidirectionalRange))
+      {
+            dst._backSubrange = dst._range.back;
+            while (dst._backSubrange.empty && !dst._range.empty){
+                dst._range.popBack;
+                if (!dst._range.empty) dst._backSubrange = dst._range.back;
+            }
+      }
+    }
+
+    return dst;
+}
+
+/// ditto
+R concat(R)(R range) if (isSimpleRange!R) {
+    return range;
+}
+
+unittest
+{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    int[][] r1 = [[0, 1, 2, 3], [4, 5, 6], [7, 8], [9], []];
+    auto c = concat(r1);
+    assert(equal(c, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
+    assert(equal(c.retro(), retro([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))); // bidir range
+    assert(equal(c.retro.retro, c));
+
+    assert(equal(concat(c), c));
+
+    auto r2 = [0, 1, 2, 3];
+    auto ror = map!"std.range.repeat(a, a+1)"(r2); // -> [[0], [1,1], [2,2,2], [3,3,3,3]]
+    assert(equal(concat(ror), [0, 1, 1, 2 ,2, 2, 3, 3, 3, 3][]));
+
+    string sentence = "the quick brown fox jumped over the lazy dog.";
+    auto words = split(sentence); // a string[], so also a immutable(char)[][]
+    auto sentence2 = concat(words);
+    assert(array(sentence2) == "thequickbrownfoxjumpedoverthelazydog.");
+
+    int[][] ee;
+    int[] e;
+    assert(concat(ee).empty);
+    assert(concat(e).empty);
 }
