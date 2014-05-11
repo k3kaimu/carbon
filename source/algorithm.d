@@ -29,11 +29,18 @@ D. Above three clauses are applied both to source and binary
 */
 module carbon.algorithm;
 
+import carbon.functional,
+       carbon.range,
+       carbon.templates;
+
 
 import std.algorithm,
        std.conv,
-       std.range;
+       std.functional,
+       std.range,
+       std.traits;
 
+debug import std.stdio;
 
 ElementType!R sum(R)(R range)
 if(isInputRange!R)
@@ -82,45 +89,7 @@ unittest
 
 
 /**
-Maps a n-args function on either n ranges in parallel or on an n-tuple producing range.
-Examples:
-----
-// With functions mapped on n ranges in parallel:
-auto r1 = [1,2,3,4,5,6];
-string s = "abcdefghijk";
-
-auto tm1 = tmap!"std.range.repeat(a, b)"(s,r1); // [a], [b,b], [c,c,c], [d,d,d,d], ...
-assert(equal(flatten(tm1), "abbcccddddeeeeeffffff")); // Note the use of flatten
-
-auto tm2 = tmap!"a%2 == 0 ? b : '_'"(r1,s); // alternate between a char from s and '_'
-assert(equal(tm2, "_b_d_f"));
-
-auto tm3 = tmap!"a%2==0 ? b : c"(r1,s,flatten(tm1)); // ternary function mapped on three ranges in parallel
-assert(equal(tm3, "abbdcf"));
-
-string e = "";
-assert(tmap!"a"(r1, s, e).empty); // e is empty -> tmap also
-----
-
-Examples:
-----
-// With functions mapped on a tuple-producing range:
-
-auto tf = tfilter!"a%2"(r1, s); // keeps the odd elements from r1, produces 2-tuples (1,'a'),(3,'c'),(5,'e')
-string foo(int a, dchar b) { return to!(string)(array(std.range.repeat(b, a)));}
-auto tm4 = tmap!foo(tf); // maps a standard binary function on a 2-tuple range
-assert(equal(tm4, ["a","ccc","eeeee"][]));
-
-auto r2 = [1,2,3][];
-// combinations(r2,r2) is equivalent to [(1,1),(1,2),(1,3),(2,1),(2,2),(2,3),(3,1),(3,2),(3,3)][]
-auto combs = tmap!"a*b"(combinations(r2,r2));
-assert(equal(combs, [1,2,3,2,4,6,3,6,9][]));
-
-auto r3 = [1, 2, 3];
-//first element of [0] expresses r3 is used as range, but second element expresses "abcd" is not used as range.
-auto ss = tmap!("b[a]", [0])(r3, "abcd");
-assert(equal(ss, ['b', 'c', 'd'][]));
-----
+tmap
 */
 template tmap(fun...)
 if(fun.length >= 1)
@@ -143,10 +112,10 @@ if(fun.length >= 1)
     auto tmap(T...)(T args)
     if(T.length > 1 || (T.length == 1 && !__traits(compiles, ElementType!(T[0]).Types)))
     {
-        static if(is(typeof(TMap!(staticMap!(Unqual, T))(args))))
+        //static if(is(typeof(TMap!(staticMap!(Unqual, T))(args))))
             return TMap!(staticMap!(Unqual, T))(args);
-        else
-            return map!(staticMap!(adaptTuple, staticMap!(naryFun, fun)))(knit(args));
+        //else
+            //return map!(staticMap!(adaptTuple, staticMap!(naryFun, fun)))(zip(args));
     }
 
 
@@ -154,7 +123,7 @@ if(fun.length >= 1)
     auto tmap(T)(T args)
     if(__traits(compiles, ElementType!T.Types))
     {
-        return map!(Prepare!(fun, ElementType!T.Types))(args);
+        return map!(adaptTuple!(fun, ElementType!T.Types))(args);
     }
 
 
@@ -172,7 +141,7 @@ if(fun.length >= 1)
             //if typeof(fun[$-1]) is Integral[]
             static if(isArray!(typeof(fun[$-1]))
                 && is(ElementType!(typeof(fun[$-1])) : long)
-                && !isSomeChar!(ElementType!(typeof(fun[$-1]))))
+                && !isSomeString!(typeof(fun[$-1])))
             {
                 static if(fun.length == 2)
                     alias naryFun!(fun[0]) _fun;
@@ -188,7 +157,7 @@ if(fun.length >= 1)
                         else static if(fun[$-1][idx] > Result.length)
                             alias IndexOfRangeTypeTFImpl!(idx, Result, false) IndexOfRangeTypeTFImpl;
                         else
-                            static assert(0, "tfilter Error : select array is invalid. select array must be sorted.");
+                            static assert(0, "tmap Error : select array is invalid. it's must be sorted.");
                     }
                 }
             
@@ -200,8 +169,8 @@ if(fun.length >= 1)
                 alias RangeIndexTF!T IndexOfRangeTypeTF;
             }
         }
-        
-        
+
+
         template RangesTypesImpl(size_t n){
             static if(n < T.length){
                 static if(IndexOfRangeTypeTF[n])
@@ -400,4 +369,39 @@ if(fun.length >= 1)
     template _lengthType(T){
         alias typeof(T.init.length) _lengthType;
     }
+}
+
+
+/// ditto
+unittest
+{
+    debug scope(failure) writefln("Unittest Failure :%s(%s) ", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    auto r1 = [1,2,3,4,5,6];
+    auto s = "abcdefghijk".dup;
+    auto tm1 = tmap!" std.range.repeat(a, b)"(s, r1); // [a], [b,b], [c,c,c], [d,d,d,d], ...
+    alias typeof(tm1) TM1;
+    assert(equal(concat(tm1), cast(char[])"abbcccddddeeeeeffffff")); // Note the use of flatten
+    auto tm2 = tmap!"a%2 == 0 ? b : '_'"(r1,s);
+    assert(equal(tm2, "_b_d_f"));
+
+    auto tm3 = tmap!"a%2==0 ? b : c"(r1,s,concat(tm1));
+    assert(equal(tm3, "abbdcf"));
+
+    string e = "";
+    assert(tmap!"a"(r1, s, e).empty); // e is empty -> tmap also
+
+    //auto tf = tfilter!"a%2"(r1, s); // keeps the odd elements from r1, produces 2-tuples (1,'a'),(3,'c'),(5,'e')
+    //auto tm4 = tmap!"to!(string)(array(std.range.repeat(b,a)))"(tf); // maps a standard binary function on a 2-tuple range
+    //assert(equal(tm4, ["a","ccc","eeeee"][]));
+
+    auto r3 = [1, 2, 3];
+    //first element of [0] expresses r3 is used as range, but second element expresses "abcd" is not used as range.
+    auto ss = tmap!("b[a]", [0])(r3, "abcd");
+    assert(equal(ss, ['b', 'c', 'd'][]));
+
+    ///multi function and range-choose test
+    auto tm5 = tmap!("b[a]", "b[a]", [0])(r3, "abcd");
+    assert(equal(tm5, [tuple('b', 'b'), tuple('c', 'c'), tuple('d', 'd')][]));
 }
