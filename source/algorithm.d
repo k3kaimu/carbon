@@ -344,6 +344,7 @@ unittest
     auto ss = tmap!("b[a]", [0])(r3, "abcd");
     assert(equal(ss, ['b', 'c', 'd'][]));
     assert(ss.length == 3);
+    assert(equal(ss, ss.save));
 
     static assert(isForwardRange!(typeof(ss)));
     static assert(!isBidirectionalRange!(typeof(ss)));
