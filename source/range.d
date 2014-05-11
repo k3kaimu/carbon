@@ -1562,34 +1562,42 @@ auto concat(R)(R range) if (isRangeOfRanges!R)
     }
 
 
-    Concat dst;
-    dst._range = range;
+    Concat dst = {_range : range};
 
     if (!dst._range.empty){
         dst._subrange = dst._range.front;
         while (dst._subrange.empty && !dst._range.empty){
             dst._range.popFront;
-            if (!dst._range.empty) dst._subrange = dst._range.front;
-        }
 
-      static if (isRangeOfRanges!(R, isBidirectionalRange))
-      {
-            dst._backSubrange = dst._range.back;
-            while (dst._backSubrange.empty && !dst._range.empty){
-                dst._range.popBack;
-                if (!dst._range.empty) dst._backSubrange = dst._range.back;
-            }
-      }
+            if (!dst._range.empty)
+                dst._subrange = dst._range.front;
+        }
     }
+
+  static if (isRangeOfRanges!(R, isBidirectionalRange))
+  {
+    if(!dst._range.empty){
+        dst._backSubrange = dst._range.back;
+        while (dst._backSubrange.empty && !dst._range.empty){
+            dst._range.popBack;
+
+            if (!dst._range.empty)
+                dst._backSubrange = dst._range.back;
+        }
+    }
+  }
 
     return dst;
 }
 
 /// ditto
-R concat(R)(R range) if (isSimpleRange!R) {
+R concat(R)(R range)
+if(isSimpleRange!R)
+{
     return range;
 }
 
+///
 unittest
 {
     debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
@@ -1603,17 +1611,12 @@ unittest
 
     assert(equal(concat(c), c));
 
-    auto r2 = [0, 1, 2, 3];
-    auto ror = map!"std.range.repeat(a, a+1)"(r2); // -> [[0], [1,1], [2,2,2], [3,3,3,3]]
-    assert(equal(concat(ror), [0, 1, 1, 2 ,2, 2, 3, 3, 3, 3][]));
+    auto r2 = [0, 1, 2, 3, 4, 5];
+    assert(equal(r2.map!"[a, 2]".concat, [0, 2, 1, 2, 2, 2, 3, 2, 4, 2, 5, 2]));
+    assert(equal(r2[0 .. 4].map!(a => repeat(a, a)).concat, [1, 2, 2, 3, 3, 3]));
+    assert(equal(r2[0 .. 3].repeat(2).map!(map!"a + 1").concat, [1, 2, 3, 1, 2, 3]));
 
-    string sentence = "the quick brown fox jumped over the lazy dog.";
-    auto words = split(sentence); // a string[], so also a immutable(char)[][]
-    auto sentence2 = concat(words);
-    assert(array(sentence2) == "thequickbrownfoxjumpedoverthelazydog.");
-
-    int[][] ee;
-    int[] e;
-    assert(concat(ee).empty);
-    assert(concat(e).empty);
+    int[] emp;
+    assert(emp.repeat(15).concat.empty);
+    assert(emp.concat.empty);
 }
