@@ -75,14 +75,15 @@ unittest
 
 
 /**
-ある型TをN個並べたタプルを返します
+ある型や値をN個並べたタプルを返します
 */
-template TypeNuple(E, size_t N)
+template TypeNuple(A...)
+if(A.length == 2 && is(typeof(A[1]) : size_t))
 {
-  static if(N == 0)
+  static if(A[1] == 0)
     alias TypeNuple = TypeTuple!();
   else
-    alias TypeNuple = TypeTuple!(E, TypeNuple!(E, N - 1));
+    alias TypeNuple = TypeTuple!(A[0], TypeNuple!(A[0], A[1] - 1));
 }
 
 unittest
