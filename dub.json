@@ -1,0 +1,27 @@
+{
+    "name": "carbon",
+    "description": "some utility library for D.",
+    "authors": ["Kazuki Komatsu"],
+    "homepage": "https://github.com/k3kaimu/carbon",
+    "license": "NYSL",
+    "copyright": "Copyright © 2014, Kazuki Komatsu",
+
+    "importPaths": ["source"],
+    "targetType": "library",
+
+    "configurations":[
+        {
+            "name": "use_as_lib",
+        },
+
+        {
+            "name": "check_libdev",
+            "targetType": "executable",
+            "buildOptions": ["debugMode", "coverage", "debugInfo", "unittests", "warningsAsErrors"],
+            "dflags": ["-main"],
+       }
+    ],
+
+    "dependencies": {
+    }
+}
