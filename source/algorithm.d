@@ -38,6 +38,7 @@ import std.algorithm,
        std.conv,
        std.functional,
        std.range,
+       std.string,
        std.traits;
 
 debug import std.stdio;
@@ -94,28 +95,12 @@ tmap
 template tmap(fun...)
 if(fun.length >= 1)
 {
-    // (RangeIndex!TF)[i] is true, if T[i] is input-range
-    template RangeIndexTF(T...)
-    {
-        static if(T.length == 0)
-            alias TypeTuple!() RangeIndexTF;
-        else
-        {
-            static if(isInputRange!(T[0]))
-                alias TypeTuple!(true, RangeIndexTF!(T[1..$])) RangeIndexTF;
-            else
-                alias TypeTuple!(false, RangeIndexTF!(T[1..$])) RangeIndexTF;
-        }
-    }
-
-
     auto tmap(T...)(T args)
     if(T.length > 1 || (T.length == 1 && !__traits(compiles, ElementType!(T[0]).Types)))
     {
-        //static if(is(typeof(TMap!(staticMap!(Unqual, T))(args))))
-            return TMap!(staticMap!(Unqual, T))(args);
-        //else
-            //return map!(staticMap!(adaptTuple, staticMap!(naryFun, fun)))(zip(args));
+        auto dst = TMap!(false, staticMap!(Unqual, T))(args);
+
+        return dst;
     }
 
 
@@ -127,49 +112,54 @@ if(fun.length >= 1)
     }
 
 
-    struct TMap(T...)
+    struct TMap(bool asB, T...)
     {
-        Tuple!(T) _input;
-        
-        static if(fun.length == 1)
-        {
-            alias naryFun!(TypeTuple!(fun)[0]) _fun;
-            alias RangeIndexTF!T IndexOfRangeTypeTF;
-        }
-        else
-        {
-            //if typeof(fun[$-1]) is Integral[]
-            static if(isArray!(typeof(fun[$-1]))
+      private:
+        T _input;
+
+      static if(isArray!(typeof(fun[$-1]))
                 && is(ElementType!(typeof(fun[$-1])) : long)
                 && !isSomeString!(typeof(fun[$-1])))
-            {
-                static if(fun.length == 2)
-                    alias naryFun!(fun[0]) _fun;
-                else
-                    alias adjoin!(staticMap!(naryFun, fun[0..$-1])) _fun;
-                
-                template IndexOfRangeTypeTFImpl(size_t idx, Result...){
-                    static if(idx == fun[$-1].length)
-                        alias TypeTuple!(Result, TypeNuple!(false, T.length - Result.length)) IndexOfRangeTypeTFImpl;
-                    else{
-                        static if(fun[$-1][idx] == Result.length)
-                            alias IndexOfRangeTypeTFImpl!(idx+1, Result, true) IndexOfRangeTypeTFImpl;
-                        else static if(fun[$-1][idx] > Result.length)
-                            alias IndexOfRangeTypeTFImpl!(idx, Result, false) IndexOfRangeTypeTFImpl;
-                        else
-                            static assert(0, "tmap Error : select array is invalid. it's must be sorted.");
-                    }
-                }
-            
-                alias IndexOfRangeTypeTFImpl!(0) IndexOfRangeTypeTF;
-            }
-            else
-            {
-                alias adjoin!(staticMap!(naryFun, fun)) _fun;
-                alias RangeIndexTF!T IndexOfRangeTypeTF;
-            }
-        }
+      {
+        alias _funWithoutArray = fun[0 .. $-1];
 
+        alias IndexOfRangeTypeTF = IndexOfRangeTypeTFImpl!(0, fun[$-1]);
+
+        template IndexOfRangeTypeTFImpl(size_t index, alias array)
+        {
+          static if(index == T.length)
+            alias IndexOfRangeTypeTFImpl = TypeTuple!();
+          else static if(array.length == 0)
+            alias IndexOfRangeTypeTFImpl = TypeTuple!(false, IndexOfRangeTypeTFImpl!(index + 1, array));
+          else static if(index == array[0])
+            alias IndexOfRangeTypeTFImpl = TypeTuple!(true, IndexOfRangeTypeTFImpl!(index + 1, array[1 .. $]));
+          else static if(index < array[0])
+            alias IndexOfRangeTypeTFImpl = TypeTuple!(false, IndexOfRangeTypeTFImpl!(index + 1, array));
+          else static if(index > array[0])
+            alias IndexOfRangeTypeTFImpl = TypeTuple!(false, IndexOfRangeTypeTFImpl!(index, array[1 .. $]));
+          else
+            static assert(0);
+        }
+      }
+      else
+      {
+        alias _funWithoutArray = fun;
+
+        alias IndexOfRangeTypeTF = IndexOfRangeTypeTFImpl!T;
+
+        template IndexOfRangeTypeTFImpl(T...)
+        {
+            static if(T.length == 0)
+                alias IndexOfRangeTypeTFImpl = TypeTuple!();
+            else
+                alias IndexOfRangeTypeTFImpl = TypeTuple!(isInputRange!(T[0]), IndexOfRangeTypeTFImpl!(T[1..$]));
+        }
+      }
+
+      static if(_funWithoutArray.length == 1)
+        alias _fun = naryFun!(TypeTuple!(_funWithoutArray)[0]);
+      else
+        alias _fun = adjoin!(staticMap!(naryFun, _funWithoutArray));
 
         template RangesTypesImpl(size_t n){
             static if(n < T.length){
@@ -194,57 +184,46 @@ if(fun.length >= 1)
             }else
                 alias TypeTuple!() ETSImpl;
         }
-        
-        static assert(__traits(compiles, _fun(ETS.init)));
 
-        
-        this(T input)
+
+        static assert(is(typeof(_fun(ETS.init))));
+
+
+        static string expandMacro(string a, string b)
         {
-            _input = Tuple!T(input);
-            
-            static if(allSatisfy!(isBidirectionalRange, RangesTypes) && allSatisfy!(hasLength, RangesTypes))
+            string dst;
+            foreach(i, isRange; IndexOfRangeTypeTF)
             {
-                auto size = this.length;
-                
-                foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange){
-                        static if(hasSlicing!(T[i]))
-                            _input[i] = _input[i][0..size];
-                        else
-                            popBackN(_input[i], _input[i].length - size);
-                    }
-                }
+              static if(isRange)
+              {
+                if(a)
+                    dst ~= format(a, i);
+              }
+              else
+              {
+                if(b)
+                    dst ~= format(b, i);
+              }
             }
+            return dst;
         }
-        
-        static if(allSatisfy!(isBidirectionalRange, RangesTypes) && allSatisfy!(hasLength, RangesTypes))
+
+      public:
+
+      static if(asB && allSatisfy!(isBidirectionalRange, RangesTypes) && allSatisfy!(hasLength, RangesTypes))
+      {
+        @property
+        auto ref back()
         {
-            @property auto ref back()
-            {
-                return _fun(_back().field);
-            }
-            
-            private Tuple!ETS _back(){
-                Tuple!ETS result;
-                
-                foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        result[i] = _input[i].back;
-                    else
-                        result[i] = _input[i];
-                }
-                
-                return result;
-            }
-            
-            void popBack()
-            {
-                 foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        _input[i].popBack();
-                }
-            }
+            return mixin("_fun(" ~ expandMacro("_input[%1$s].back,", "_input[%1$s],") ~ ")");
         }
+
+
+        void popBack()
+        {
+            mixin(expandMacro("_input[%1$s].popBack();\n", null));
+        }
+      }
         
         static if(allSatisfy!(isInfinite, RangesTypes))
         {
@@ -252,76 +231,45 @@ if(fun.length >= 1)
         }
         else
         {
-            @property bool empty()
+            @property
+            bool empty()
             {
-                 foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange){
-                        if(_input[i].empty)
-                            return true;
-                    }
-                }
+                mixin(expandMacro("if(_input[%1$s].empty) return true;\n", null));
                 return false;
             }
         }
-        
+
+
         void popFront()
         {
-            foreach(i, isRange; IndexOfRangeTypeTF){
-                static if(isRange){
-                    _input[i].popFront();
-                }
-            }
+            mixin(expandMacro("_input[%1$s].popFront();\n", null));
         }
-        
-        @property auto ref front()
+
+
+        @property
+        auto ref front()
         {
-            return _fun(_front().field);
+            return mixin("_fun(" ~ expandMacro("_input[%1$s].front,", "_input[%1$s],") ~ ")");
         }
-        
-        private Tuple!ETS _front(){
-            Tuple!(ETS) result;
-            
-            foreach(i, isRange; IndexOfRangeTypeTF){
-                static if(isRange)
-                    result[i] = _input[i].front;
-                else
-                    result[i] = _input[i];
-            }
-            
-            return result;
-        }
-        
-        static if(allSatisfy!(isRandomAccessRange, RangesTypes))
+
+
+      static if(allSatisfy!(isRandomAccessRange, RangesTypes))
+      {
+        auto ref opIndex(size_t index)
         {
-            auto ref opIndex(size_t index)
-            {
-                return _fun(_opIndex(index).field);
-            }
-            
-            private Tuple!ETS _opIndex(size_t idx){
-                Tuple!ETS result;
-                
-                foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        result[i] = _input[i][idx];
-                    else
-                        result[i] = _input[i];
-                }
-                
-                return result;
-            }
+            return mixin("_fun(" ~ expandMacro("_input[%1$s][index],", "_input[%1$s],") ~ ")");
         }
+      }
         
         static if(allSatisfy!(hasLength, RangesTypes))
         {
             @property auto length()
             {
-                alias CommonType!(staticMap!(_lengthType, RangesTypes)) LT;
+                mixin("alias LT = CommonType!(" ~ expandMacro("typeof(_input[%1$s].length),", null) ~ ");");
+
                 LT m = LT.max;
-                foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        m = min(m, _input[i].length);
-                }
+
+                mixin(expandMacro("m = min(m, _input[%1$s].length);\n", null));
                 return m;
             }
 
@@ -332,20 +280,7 @@ if(fun.length >= 1)
         {
             auto opSlice(size_t idx1, size_t idx2)
             {
-                return typeof(this)(_opSlice(idx1, idx2).field);
-            }
-            
-            auto _opSlice(size_t idx1, size_t idx2){
-                Tuple!T result;
-                
-                 foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        result[i] = _input[i][idx1..idx2];
-                    else
-                        result[i] = _input[i];
-                }
-                
-                return result;
+                return mixin("TMap!(asB, T)(" ~ expandMacro("_input[%1$s][idx1 .. idx2],", "_input[%1$s],") ~ ")");
             }
         }
         
@@ -353,21 +288,29 @@ if(fun.length >= 1)
         {
             @property auto save()
             {
-                auto result = this;
-                
-                 foreach(i, isRange; IndexOfRangeTypeTF){
-                    static if(isRange)
-                        result._input[i] = result._input[i].save;
-                }
-                
-                return result;
+                return mixin("TMap!(asB, T)(" ~ expandMacro("_input[%1$s].save,", "_input[%1$s],") ~ ")");
             }
         }
-        
-    }
-    
-    template _lengthType(T){
-        alias typeof(T.init.length) _lengthType;
+
+
+      static if(allSatisfy!(isBidirectionalRange, RangesTypes) && allSatisfy!(hasLength, RangesTypes))
+      {
+        TMap!(true, T) asBidirectional() @property
+        {
+            auto dst = TMap!(true, T)(this._input);
+
+            immutable size = dst.length;
+
+            mixin(expandMacro(q{
+                static if(hasSlicing!(T[%1$s]))
+                  dst._input[%1$s] = dst._input[%1$s][0 .. size];
+                else
+                  dst._input[%1$s].popBackN(dst._input[%1$s].length - size);
+              }, null));
+
+            return dst;
+        }
+      }
     }
 }
 
@@ -382,11 +325,11 @@ unittest
     auto s = "abcdefghijk".dup;
     auto tm1 = tmap!" std.range.repeat(a, b)"(s, r1); // [a], [b,b], [c,c,c], [d,d,d,d], ...
     alias typeof(tm1) TM1;
-    assert(equal(concat(tm1), cast(char[])"abbcccddddeeeeeffffff")); // Note the use of flatten
-    auto tm2 = tmap!"a%2 == 0 ? b : '_'"(r1,s);
+    assert(equal(concat(tm1), "abbcccddddeeeeeffffff")); // Note the use of flatten
+    auto tm2 = tmap!"a%2 == 0 ? b : '_'"(r1, s);
     assert(equal(tm2, "_b_d_f"));
 
-    auto tm3 = tmap!"a%2==0 ? b : c"(r1,s,concat(tm1));
+    auto tm3 = tmap!"a%2==0 ? b : c"(r1, s, concat(tm1));
     assert(equal(tm3, "abbdcf"));
 
     string e = "";
@@ -400,8 +343,18 @@ unittest
     //first element of [0] expresses r3 is used as range, but second element expresses "abcd" is not used as range.
     auto ss = tmap!("b[a]", [0])(r3, "abcd");
     assert(equal(ss, ['b', 'c', 'd'][]));
+    assert(ss.length == 3);
+
+    static assert(isForwardRange!(typeof(ss)));
+    static assert(!isBidirectionalRange!(typeof(ss)));
+    static assert(!isRandomAccessRange!(typeof(ss)));
+
+    auto ss_b = ss.asBidirectional;
+    static assert(isBidirectionalRange!(typeof(ss_b)));
+    static assert(isRandomAccessRange!(typeof(ss_b)));
+    assert(equal(ss_b.retro, ['d', 'c', 'b']));
 
     ///multi function and range-choose test
-    auto tm5 = tmap!("b[a]", "b[a]", [0])(r3, "abcd");
-    assert(equal(tm5, [tuple('b', 'b'), tuple('c', 'c'), tuple('d', 'd')][]));
+    auto tm5 = tmap!("b[a]", "b[a-1]", [0])(r3, "abcd");
+    assert(equal(tm5, [tuple('b', 'a'), tuple('c', 'b'), tuple('d', 'c')][]));
 }
