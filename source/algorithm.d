@@ -161,13 +161,16 @@ if(fun.length >= 1)
       else
         alias _fun = adjoin!(staticMap!(naryFun, _funWithoutArray));
 
-        template RangesTypesImpl(size_t n){
-            static if(n < T.length){
+        template RangesTypesImpl(size_t n)
+        {
+            static if(n < T.length)
+            {
                 static if(IndexOfRangeTypeTF[n])
                     alias TypeTuple!(T[n], RangesTypesImpl!(n+1)) RangesTypesImpl;
                 else
                     alias RangesTypesImpl!(n+1) RangesTypesImpl;
-            }else
+            }
+            else
                 alias TypeTuple!() RangesTypesImpl;
         }
         
@@ -175,13 +178,16 @@ if(fun.length >= 1)
         alias staticMap!(ElementType, RangesTypes) ElementTypeOfRanges;
         alias ETSImpl!(0) ETS;      //_fun args type
         
-        template ETSImpl(size_t n){
-            static if(n < T.length){
+        template ETSImpl(size_t n)
+        {
+            static if(n < T.length)
+            {
                 static if(IndexOfRangeTypeTF[n])
                     alias TypeTuple!(ElementType!(T[n]), ETSImpl!(n+1)) ETSImpl;
                 else
                     alias TypeTuple!(T[n], ETSImpl!(n+1)) ETSImpl;
-            }else
+            }
+            else
                 alias TypeTuple!() ETSImpl;
         }
 
@@ -263,7 +269,8 @@ if(fun.length >= 1)
         
         static if(allSatisfy!(hasLength, RangesTypes))
         {
-            @property auto length()
+            @property
+            auto length()
             {
                 mixin("alias LT = CommonType!(" ~ expandMacro("typeof(_input[%1$s].length),", null) ~ ");");
 
@@ -286,7 +293,8 @@ if(fun.length >= 1)
         
         static if(allSatisfy!(isForwardRange, RangesTypes))
         {
-            @property auto save()
+            @property
+            auto save()
             {
                 return mixin("TMap!(asB, T)(" ~ expandMacro("_input[%1$s].save,", "_input[%1$s],") ~ ")");
             }
@@ -321,23 +329,14 @@ unittest
     debug scope(failure) writefln("Unittest Failure :%s(%s) ", __FILE__, __LINE__);
     debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
-    auto r1 = [1,2,3,4,5,6];
-    auto s = "abcdefghijk".dup;
-    auto tm1 = tmap!" std.range.repeat(a, b)"(s, r1); // [a], [b,b], [c,c,c], [d,d,d,d], ...
-    alias typeof(tm1) TM1;
-    assert(equal(concat(tm1), "abbcccddddeeeeeffffff")); // Note the use of flatten
-    auto tm2 = tmap!"a%2 == 0 ? b : '_'"(r1, s);
-    assert(equal(tm2, "_b_d_f"));
+    auto r1 = [1, 3, 2, 4, 0, 0];
+    auto s = "abc".dup;
+    auto tm1 = tmap!("a", "b", (a, b) => b.repeat(a).array().idup)(r1, s);
+    assert(equal(tm1, [tuple(1, 'a', "a"d),
+                       tuple(3, 'b', "bbb"d),
+                       tuple(2, 'c', "cc"d)]));
 
-    auto tm3 = tmap!"a%2==0 ? b : c"(r1, s, concat(tm1));
-    assert(equal(tm3, "abbdcf"));
-
-    string e = "";
-    assert(tmap!"a"(r1, s, e).empty); // e is empty -> tmap also
-
-    //auto tf = tfilter!"a%2"(r1, s); // keeps the odd elements from r1, produces 2-tuples (1,'a'),(3,'c'),(5,'e')
-    //auto tm4 = tmap!"to!(string)(array(std.range.repeat(b,a)))"(tf); // maps a standard binary function on a 2-tuple range
-    //assert(equal(tm4, ["a","ccc","eeeee"][]));
+    assert(tmap!"a"(r1, s, "").empty);
 
     auto r3 = [1, 2, 3];
     //first element of [0] expresses r3 is used as range, but second element expresses "abcd" is not used as range.
