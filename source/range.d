@@ -33,6 +33,7 @@ module carbon.range;
 
 import std.algorithm,
        std.range,
+       std.string,
        std.traits;
 
 debug import std.stdio;
@@ -1564,27 +1565,24 @@ auto concat(R)(R range) if (isRangeOfRanges!R)
 
     Concat dst = {_range : range};
 
-    if (!dst._range.empty){
-        dst._subrange = dst._range.front;
-        while (dst._subrange.empty && !dst._range.empty){
-            dst._range.popFront;
+    enum initMethod = 
+    q{
+        if (!dst._range.empty){
+            %1$s = dst._range.%2$s;
+            while (%1$s.empty && !dst._range.empty){
+                dst._range.%3$s;
 
-            if (!dst._range.empty)
-                dst._subrange = dst._range.front;
+                if (!dst._range.empty)
+                    %1$s = dst._range.%2$s;
+            }
         }
-    }
+    };
+
+    mixin(format(initMethod, "dst._subrange", "front", "popFront"));
 
   static if (isRangeOfRanges!(R, isBidirectionalRange))
   {
-    if(!dst._range.empty){
-        dst._backSubrange = dst._range.back;
-        while (dst._backSubrange.empty && !dst._range.empty){
-            dst._range.popBack;
-
-            if (!dst._range.empty)
-                dst._backSubrange = dst._range.back;
-        }
-    }
+    mixin(format(initMethod, "dst._backSubrange", "back", "popBack"));
   }
 
     return dst;
