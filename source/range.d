@@ -1618,3 +1618,33 @@ unittest
     assert(emp.repeat(15).concat.empty);
     assert(emp.concat.empty);
 }
+
+
+///
+auto flatten(size_t N = size_t.max, R)(R r)
+if(isInputRange!R)
+{
+  static if(N > 0 && isRangeOfRanges!R)
+    return r.concat.flatten!(N-1);
+  else
+    return r;
+}
+
+///
+unittest
+{
+    auto d1 = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    assert(equal(d1.flatten, d1));
+    assert(equal(d1.flatten!0, d1));
+
+    auto d2 = [[0, 1], [], [2, 3], [4, 5, 6, 7], [8]];
+    assert(equal(d2.flatten, d1));
+    assert(equal(d2.flatten!1, d1));
+    assert(equal(d2.flatten!0, d2));
+
+    auto d3 = [[[0, 1], [], [2, 3]], [[4, 5, 6, 7], [8]]];
+    assert(equal(d3.flatten, d1));
+    assert(equal(d3.flatten!0, d3));
+    assert(equal(d3.flatten!1, d2));
+    assert(equal(d3.flatten!2, d1));
+}
