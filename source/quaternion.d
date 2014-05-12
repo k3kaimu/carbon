@@ -211,8 +211,7 @@ if(isNotVectorOrMatrix!S)
     Quaternion!(CommonType!(S, E)) opBinary(string op : "+", E)(in E s) const
     if(!is(CommonType!(S, E) == void))
     {
-        typeof(return) dst;
-        dst = this;
+        typeof(return) dst = this;
         dst.a += s;
         return dst;
     }
@@ -221,8 +220,7 @@ if(isNotVectorOrMatrix!S)
     Quaternion!(CommonType!(S, E)) opBinary(string op  : "-", E)(in E s) const
     if(!is(CommonType!(S, E) == void))
     {
-        typeof(return) dst;
-        dst = this;
+        typeof(return) dst = this;
         dst.a -= s;
         return dst;
     }
@@ -231,8 +229,7 @@ if(isNotVectorOrMatrix!S)
     Quaternion!(CommonType!(S, E)) opBinary(string op : "*", E)(in E s) const
     if(!is(CommonType!(S, E) == void))
     {
-        typeof(return) dst;
-        dst = this;
+        typeof(return) dst = this;
         dst._vec4 *= s;
         return dst;
     }
@@ -241,10 +238,32 @@ if(isNotVectorOrMatrix!S)
     Quaternion!(CommonType!(S, E)) opBinary(string op : "/", E)(in E s) const
     if(!is(CommonType!(S, E) == void))
     {
-        typeof(return) dst;
-        dst = this;
+        typeof(return) dst = this;
         dst._vec4 /= s;
         return dst;
+    }
+
+
+    Quaternion!(Select!(isFloatingPoint!S, S, real)) opBinary(string op : "^^", Int : long)(Int n) const
+    {
+        if(n < 0)
+            return this.inverse ^^ (-n);
+        else
+        {
+            typeof(return) dst = this, memo = this;
+
+            n >>= 1;
+            while(n){
+                memo *= memo;
+
+                if(n)
+                    dst *= memo;
+
+                n >>= 1;
+            }
+
+            return dst;
+        }
     }
 
 
@@ -298,14 +317,14 @@ if(isNotVectorOrMatrix!S)
 
 
     void opOpAssign(string op, E)(in Quaternion!E q)
-    if(!is(CommonType!(S, E) == void))
+    if(!is(CommonType!(S, E) == void) && is(typeof(mixin("this " ~ op ~ " q"))))
     {
         this = mixin("this " ~ op ~ " q");
     }
 
 
     void opOpAssign(string op, E)(in E s)
-    if(is(E : S))
+    if(is(E : S) && is(typeof(mixin("this " ~ op ~ " s"))))
     {
         this = mixin("this " ~ op ~ " s");
     }
@@ -450,6 +469,15 @@ unittest {
     p = quaternion(4.0, 8, 12, 16);
     p /= 4;
     assert(p.approxEqual(quaternion(1, 2, 3, 4)));
+
+    // 累乗
+    q = quaternion(1, 1, 2, 2);
+    p = q ^^ 3;
+    assert(approxEqual(p, q * q * q));
+
+    p = q ^^ -3;
+    assert(approxEqual(p, q.inverse * q.inverse * q.inverse));
+    assert(approxEqual(q ^^ 3 * q ^^ -3, quaternion(1, 0, 0, 0)));
 }
 
 
@@ -551,6 +579,6 @@ unittest
 {
     import std.stdio;
 
-    q = quaternion(1, 2, 3, 4);
+    auto q = quaternion(1, 2, 3, 4);
     assert(approxEqual((q * q.inverse), quaternion(1, 0, 0, 0)));
 }
