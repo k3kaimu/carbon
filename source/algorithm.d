@@ -358,3 +358,23 @@ unittest
     auto tm5 = tmap!("b[a]", "b[a-1]", [0])(r3, "abcd");
     assert(equal(tm5, [tuple('b', 'a'), tuple('c', 'b'), tuple('d', 'c')][]));
 }
+
+
+auto flatMap(alias fun, R)(R r)
+if(isInputRange!R)
+{
+    return r.map!fun.concat;
+}
+
+unittest
+{
+    auto r1 = [1, 2, 3, 4];
+    assert(equal(r1.flatMap!"repeat(a, a)", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]));
+
+    auto r2 = ["a b c", "de f", "ghi", "jkl mn"];
+    assert(equal(r2.flatMap!split, ["a", "b", "c", "de", "f", "ghi", "jkl", "mn"]));
+
+    auto r3 = [1, 2];
+    assert(equal!equal(r3.flatMap!"repeat(a, a).repeat(a)",
+        [[1], [2, 2], [2, 2]]));
+}
