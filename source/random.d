@@ -28,7 +28,7 @@ D. Above three clauses are applied both to source and binary
 このモジュールは、標準ライブラリのstd.randomを強化します。
 */
 
-module ceraphite.carbon.random;
+module carbon.random;
 
 
 import std.random;
