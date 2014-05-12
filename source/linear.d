@@ -4911,11 +4911,12 @@ in{
     }
 }
 body{
-    alias ElementType!V1 T;
+    alias typeof(ElementType!V1.init * ElementType!V2.init) T;
     T sum = cast(T)0;
 
-    foreach(i; 0 .. vec1.length)
+    foreach(i; 0 .. vec1.length){
         sum += vec1[i] * vec2[i];
+    }
 
     return sum;
 }
@@ -4936,6 +4937,9 @@ unittest{
 
     assert(rv.dot(rv) == 5);
     assert(cv.dot(cv) == 14);
+
+
+    assert(approxEqual((rv * 0.5).dot(rv), 2.5));
 }
 
 
