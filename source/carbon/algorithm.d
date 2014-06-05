@@ -389,3 +389,91 @@ unittest
     assert(equal!equal(r3.flatMap!"repeat(a, a).repeat(a)",
         [[1], [2, 2], [2, 2]]));
 }
+
+
+/**
+reduceは、レンジのすべての要素をたどりますが、scanはその途中結果を要素としてもつレンジです。
+*/
+auto scan(alias fun, R)(R r)
+if(isInputRange!R && !isInfinite!R)
+{
+    alias E = Unqual!(ElementType!R);
+    E e;
+    return scan!fun(e, r);
+}
+
+
+/// ditto
+auto scan(alias fun, R, E)(E iniValue, R r)
+if(isInputRange!R && !isInfinite!R && is(typeof(binaryFun!fun(iniValue, r.front)) : E))
+{
+    static struct Scan()
+    {
+        @property
+        auto ref front() inout
+        {
+            return _v;
+        }
+
+
+        void popFront()
+        {
+            if(!_rIsEmpty){
+                _v = binaryFun!fun(_v, _r.front);
+                _r.popFront();
+            }else
+              _isEmpty = true;
+        }
+
+
+        @property
+        bool empty()
+        {
+            if(!_rIsEmpty)
+                _rIsEmpty = _r.empty;
+
+            return _isEmpty;
+        }
+
+
+      static if(isForwardRange!R)
+      {
+        @property
+        auto save()
+        {
+            typeof(this) dst = this;
+
+            dst._r = dst._r.save;
+
+            return dst;
+        }
+      }
+
+
+      private:
+        E _v;
+        R _r;
+        bool _rIsEmpty = false;
+        bool _isEmpty = false;
+    }
+
+
+    return Scan!()(iniValue, r);
+}
+
+///
+unittest
+{
+    // test cases : http://zvon.org/other/haskell/Outputprelude/scanl_f.html
+    assert(equal(scan!"a / b"(64, [4, 2, 4]), [64, 16, 8, 2]));
+
+    int[] none;
+    assert(equal(scan!"a / b"(3, none), [3]));
+
+    import std.algorithm : max;
+    assert(equal(scan!max(5, [1, 2, 3, 4]), [5, 5, 5, 5, 5]));
+
+    assert(equal(scan!max(5, [1, 2, 3, 4, 5, 6, 7]), [5, 5, 5, 5, 5, 5, 6, 7]));
+
+    assert(equal(scan!"2*a + b"(4, [1, 2, 3]), [4, 9, 20, 43]));
+}
