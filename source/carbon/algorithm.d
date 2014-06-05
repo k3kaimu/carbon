@@ -43,29 +43,34 @@ import std.algorithm,
 
 debug import std.stdio;
 
+
+/**
+引数に与えられたレンジの総和を返します。
+引数には、無限レンジを渡すことができません。
+*/
 ElementType!R sum(R)(R range)
-if(isInputRange!R)
+if(isInputRange!R && !isInfinite!R)
 {
     return reduce!"a + b"(to!(ElementType!R)(0), range);
 }
 
 
 ElementType!R product(R)(R range)
-if(isInputRange!R)
+if(isInputRange!R && !isInfinite!R)
 {
     return reduce!"a * b"(to!(ElementType!R)(1), range);
 }
 
 
 ElementType!R maxOf(R)(R range)
-if(isInputRange!R)
+if(isInputRange!R && !isInfinite!R)
 {
     return reduce!(std.algorithm.max)((ElementType!R).min, range);
 }
 
 
 ElementType!R minOf(R)(R range)
-if(isInputRange!R)
+if(isInputRange!R && !isInfinite!R)
 {
     return reduce!(std.algorithm.min)((ElementType!R).max, range);
 }
