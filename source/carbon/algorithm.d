@@ -365,12 +365,18 @@ unittest
 }
 
 
+
+/**
+各要素にある関数を適用し、それらを結合します。
+つまり、r.map!fun.concatと等価です
+*/
 auto flatMap(alias fun, R)(R r)
 if(isInputRange!R)
 {
     return r.map!fun.concat;
 }
 
+///
 unittest
 {
     auto r1 = [1, 2, 3, 4];
