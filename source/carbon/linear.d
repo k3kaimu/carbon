@@ -1007,6 +1007,8 @@ static assert( isValidOperator!(Inferable, "*", Static1x2));
 */
 template isValidOperator(L, string op, R)
 {
+  static if(op != "=")
+  {
     static if((isMatrix!L || isAbstractMatrix!L) && (isMatrix!R || isAbstractMatrix!R))
         enum isValidOperator = is(typeof(mixin("typeof(L.init.at(0, 0)).init " ~ op ~ " typeof(R.init.at(0, 0)).init"))) && isValidOperatorImpl!(L, op, R);
     else static if(isMatrix!L || isAbstractMatrix!L)
@@ -1015,6 +1017,18 @@ template isValidOperator(L, string op, R)
         enum isValidOperator = is(typeof(mixin("L.init " ~ op ~ " typeof(R.init.at(0, 0)).init"))) && isValidOperatorImpl!(L, op, R);
     else
         static assert(0);
+  }
+  else
+  {
+    static if((isMatrix!L || isAbstractMatrix!L) && (isMatrix!R || isAbstractMatrix!R)){
+        enum isValidOperator = isAssignable!(typeof(L.init.at(0, 0)), typeof(R.init.at(0, 0))) && isValidOperatorImpl!(L, "+", R);
+    }else static if(isMatrix!L || isAbstractMatrix!L)
+        enum isValidOperator = isAssignable!(typeof(L.init.at(0,0)), R) && isValidOperatorImpl!(L, "+", R);
+    else static if(isMatrix!R || isAbstractMatrix!R)
+        enum isValidOperator = isAssignable!(L, typeof(R.init.at(0, 0))) && isValidOperatorImpl!(L, "+", R);
+    else
+        static assert(0);
+  }
 }
 
 
@@ -1204,6 +1218,53 @@ unittest{
     static assert( isValidOperator!(Static1x2, "*", Inferable));
     static assert( isValidOperator!(Inferable, "*", Static1x1));
     static assert( isValidOperator!(Inferable, "*", Static1x2));
+
+    foreach(i, E1; TypeTuple!(byte, short, int, long))
+    {
+        foreach(E2; TypeTuple!(byte, short, int, long)[0 .. i+1])
+        {
+            static assert( isValidOperator!(S!(E1, 1, 1), "=", S!(E2, 1, 1)));
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", S!(E2, 1, 2)));
+            static assert( isValidOperator!(S!(E1, 1, 2), "=", S!(E2, 1, 2)));
+            static assert(!isValidOperator!(S!(E1, 1, 2), "=", S!(E2, 1, 1)));
+
+            static assert( isValidOperator!(S!(E1, 1, 1), "=", D!(E2)));
+            static assert( isValidOperator!(S!(E1, 1, 2), "=", D!(E2)));
+            static assert( isValidOperator!(D!(E1), "=", S!(E2, 1, 1)));
+            static assert( isValidOperator!(D!(E1), "=", S!(E2, 1, 2)));
+
+            static assert( isValidOperator!(S!(E1, 1, 1), "=", I!(E2)));
+            static assert( isValidOperator!(S!(E1, 1, 2), "=", I!(E2)));
+            static assert( isValidOperator!(I!(E1), "=", S!(E2, 1, 1)));
+            static assert( isValidOperator!(I!(E1), "=", S!(E2, 1, 2)));
+
+            static assert( isValidOperator!(S!(E1, 1, 1), "=", E2));
+            static assert( isValidOperator!(D!(E1), "=", E2));
+            static assert( isValidOperator!(I!(E1), "=", E2));
+        }
+
+        foreach(E2; TypeTuple!(byte, short, int, long)[i+1 .. $])
+        {
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", S!(E2, 1, 1)));
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", S!(E2, 1, 2)));
+            static assert(!isValidOperator!(S!(E1, 1, 2), "=", S!(E2, 1, 2)));
+            static assert(!isValidOperator!(S!(E1, 1, 2), "=", S!(E2, 1, 1)));
+
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", D!(E2)));
+            static assert(!isValidOperator!(S!(E1, 1, 2), "=", D!(E2)));
+            static assert(!isValidOperator!(D!(E1), "=", S!(E2, 1, 1)));
+            static assert(!isValidOperator!(D!(E1), "=", S!(E2, 1, 2)));
+
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", I!(E2)));
+            static assert(!isValidOperator!(S!(E1, 1, 2), "=", I!(E2)));
+            static assert(!isValidOperator!(I!(E1), "=", S!(E2, 1, 1)));
+            static assert(!isValidOperator!(I!(E1), "=", S!(E2, 1, 2)));
+
+            static assert(!isValidOperator!(S!(E1, 1, 1), "=", E2));
+            static assert(!isValidOperator!(D!(E1), "=", E2));
+            static assert(!isValidOperator!(I!(E1), "=", E2));
+        }
+    }
 }
 
 
@@ -1742,7 +1803,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
             }
         }
         body{
-            static assert(isValidOperator!(typeof(this), "+", M));
+            static assert(isValidOperator!(typeof(this), "=", M));
 
             foreach(i; 0 .. this.rows)
                 foreach(j; 0 .. this.cols)
@@ -2345,7 +2406,7 @@ unittest{
 
     M!(1, 1) m11;
     static assert(isNarrowMatrix!(typeof(m11)));
-    int valueM11 = m11;
+    size_t valueM11 = m11;
 
     M!(3, 1) m31;
     M!(1, 3) m13;
@@ -2981,7 +3042,7 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
 
 
     void opAssign(M)(auto ref M mat)
-    if(!is(typeof(this) == M) && isValidOperator!(typeof(this), "+", M))
+    if(!is(typeof(this) == M) && isValidOperator!(typeof(this), "=", M))
     in{
       static if(rs && hasDynamicRows!M)
         assert(this.rows == mat.rows);
@@ -3037,7 +3098,8 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
     void opAssign(X)(X m)
     if(!isNarrowMatrix!X && isRandomAccessRange!X && (rs || !isInfinite!X)
                    && isRandomAccessRange!(std.range.ElementType!X)
-                   && (cs || !isInfinite!(std.range.ElementType!X)))
+                   && (cs || !isInfinite!(std.range.ElementType!X))
+                   && isAssignable!(T, std.range.ElementType!X))
     {
         if(m.length && m[0].length){
           static if(rs == dynamic){
@@ -3079,7 +3141,7 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
 
     @property
     void noAlias(M)(auto ref M mat)
-    if(isValidOperator!(typeof(this), "+", M) && ((!rs || !hasStaticRows!M) ||    is(typeof({static assert(this.rows == M.rows);})))
+    if(isValidOperator!(typeof(this), "=", M) && ((!rs || !hasStaticRows!M) ||    is(typeof({static assert(this.rows == M.rows);})))
                                               && ((!cs || !hasStaticCols!M) || is(typeof({static assert(this.cols == M.cols);}))))
     in{
       static if(rs != dynamic)
@@ -3283,7 +3345,7 @@ unittest{
     assert(mr[0, 0] == 10); assert(mr[0, 1] == 1); assert(mr[0, 2] == 2);
     assert(mr[1, 0] ==  3); assert(mr[1, 1] == 4); assert(mr[1, 2] == 5);
 
-    mr = matrix!(2, 3, (i, j) => (i*3+j)*2);
+    mr = matrix!(2, 3, (i, j) => cast(int)((i*3+j)*2));
     assert(mr[0, 0] == 0); assert(mr[0, 1] == 2); assert(mr[0, 2] == 4);
     assert(mr[1, 0] == 6); assert(mr[1, 1] == 8); assert(mr[1, 2] == 10);
 
@@ -3300,7 +3362,7 @@ unittest{
     assert(mc[0, 0] == 10); assert(mc[0, 1] == 2); assert(mc[0, 2] == 4);
     assert(mc[1, 0] ==  1); assert(mc[1, 1] == 3); assert(mc[1, 2] == 5);
 
-    mc = matrix!(2, 3, (i, j) => (i*3+j)*2);
+    mc = matrix!(2, 3, (i, j) => cast(int)((i*3+j)*2));
     assert(mc[0, 0] == 0); assert(mc[0, 1] == 2); assert(mc[0, 2] == 4);
     assert(mc[1, 0] == 6); assert(mc[1, 1] == 8); assert(mc[1, 2] == 10);
 }
@@ -3465,7 +3527,7 @@ if(rs >= 0 && cs >= 0)
 
 
     void opAssign(M)(auto ref M mat)
-    if(isValidOperator!(typeof(this), "+", M))
+    if(isValidOperator!(typeof(this), "=", M))
     {
         auto buffer = {
             if(__ctfe)
@@ -3489,7 +3551,7 @@ if(rs >= 0 && cs >= 0)
 
     @property
     void noAlias(M)(auto ref M mat)
-    if(isValidOperator!(typeof(this), "+", M))
+    if(isValidOperator!(typeof(this), "=", M))
     {
         foreach(i; 0 .. rows)
             foreach(j; 0 .. cols)
@@ -4700,7 +4762,7 @@ unittest{
 
 
     auto org = matrix!((i, j) => i * 3 + j)();
-    SMatrix!(int, 4, 4) a = org;
+    SMatrix!(size_t, 4, 4) a = org;
     auto m = a.swizzle.m2x2;
     static assert(isNarrowMatrix!(typeof(m)));
     assert(m == org);
