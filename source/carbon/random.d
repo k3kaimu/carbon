@@ -286,7 +286,11 @@ if(    name == "512a"
     enum Constant = WELLConstants!UIntType[name];
     enum size_t _stateSize = Constant.regSize;
 
-    enum uint MASKU = (Constant.rotN == 0) ? 0 : ((~0U) >> (Constant.wordSize - Constant.rotN));
+  static if(Constant.rotN == 0)
+    enum uint MASKU = 0;
+  else
+    enum uint MASKU = (~0U) >> (Constant.wordSize - Constant.rotN);
+
     enum uint MASKL = ~MASKU;
 
   public:
