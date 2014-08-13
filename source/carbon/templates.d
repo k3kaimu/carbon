@@ -30,6 +30,12 @@ D. Above three clauses are applied both to source and binary
 
 module carbon.templates;
 
+import std.algorithm;
+import std.array;
+import std.format;
+import std.regex;
+import std.string;
+import std.traits;
 import std.typetuple;
 
 
@@ -91,3 +97,68 @@ unittest
     static assert(is(TypeNuple!(int, 2) == TypeTuple!(int, int)));
     static assert(is(TypeNuple!(long, 3) == TypeTuple!(long, long, long)));
 }
+
+
+/**
+自身を返します
+*/
+template Identity(alias A)
+{
+    alias Identity = A;
+}
+
+
+/**
+大域変数を宣言定義初期化します。
+*/
+mixin template defGlobalVariables(A...)
+if(A.length >= 2 && is(typeof(A[$-1]())))
+{
+    private alias idstrs = A[0 .. $-1];
+    private alias fn = A[$-1];
+
+    private string[2] makeCode()
+    {
+        auto defs = appender!string();
+        auto inis = appender!string();
+
+        foreach(i, e; idstrs){
+            auto sp = e.split();
+
+            if(e.split.length == 2)
+                defs.formattedWrite("%s typeof(fn()[%s]) %s;\n", sp[0], i, sp[1]);
+            else
+                defs.formattedWrite("typeof(fn()[%s]) %s;\n", i, sp[0]);
+
+            inis.formattedWrite("%s = inits[%s];\n", e.split()[$-1], i);
+        }
+
+        return [defs.data, inis.data];
+    }
+
+    private enum defInitCode = makeCode();
+    mixin(defInitCode[0]);
+
+    static this()
+    {
+        auto inits = fn();
+        mixin(defInitCode[1]);
+    }
+}
+
+
+version(unittest)
+{
+  mixin defGlobalVariables!("foobarNhogehoge", "immutable foofoobogeNbar",
+  (){
+      return tuple(12, 13);
+  }
+  );
+
+  unittest{
+    assert(foobarNhogehoge == 12);
+    assert(foofoobogeNbar == 13);
+  }
+}
+
+
