@@ -31,10 +31,7 @@ D. Above three clauses are applied both to source and binary
 module carbon.templates;
 
 import std.algorithm;
-import std.array;
-import std.format;
 import std.regex;
-import std.string;
 import std.traits;
 import std.typetuple;
 
@@ -134,6 +131,7 @@ if(A.length >= 2 && is(typeof(A[$-1]())))
 
     private string[2] makeCode()
     {
+        import std.array, std.format, std.string;
         auto defs = appender!string();
         auto inis = appender!string();
 
