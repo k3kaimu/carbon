@@ -110,6 +110,21 @@ template Identity(alias A)
 
 /**
 大域変数を宣言定義初期化します。
+
+Example:
+--------
+module foo;
+
+import std.stdio;
+import graphite.utils.logger;
+import carbon.templates;
+
+mixin defGlobalVariables!("logger", "logFile",
+{
+    auto file = File("foo.txt", "w");
+    return tuple(.logger!(LogFormat.readable)(file), file);
+});
+--------
 */
 mixin template defGlobalVariables(A...)
 if(A.length >= 2 && is(typeof(A[$-1]())))
