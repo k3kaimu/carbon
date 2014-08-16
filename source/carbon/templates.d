@@ -127,6 +127,11 @@ mixin template defGlobalVariables(A...)
 if(A.length >= 2 && is(typeof(A[$-1]())))
 {
     private alias idstrs = A[0 .. $-1];
+
+    import std.typecons;
+  static if(idstrs.length == 1 && is(typeof(A[$-1]()) == Tuple!E, E...))
+    private enum fn = (() => A[$-1]().tupleof[0]);
+  else
     private alias fn = A[$-1];
 
     private string[2] makeCode()
@@ -135,16 +140,29 @@ if(A.length >= 2 && is(typeof(A[$-1]())))
         auto defs = appender!string();
         auto inis = appender!string();
 
+      static if(idstrs.length >= 2)
+      {
         foreach(i, e; idstrs){
             auto sp = e.split();
 
-            if(e.split.length == 2)
+            if(sp.length >= 2)
                 defs.formattedWrite("%s typeof(fn()[%s]) %s;\n", sp[0], i, sp[1]);
             else
                 defs.formattedWrite("typeof(fn()[%s]) %s;\n", i, sp[0]);
 
-            inis.formattedWrite("%s = inits[%s];\n", e.split()[$-1], i);
+            inis.formattedWrite("%s = inits[%s];\n", sp[$-1], i);
         }
+      }
+      else
+      {
+        auto sp = idstrs[0].split();
+        if(sp.length >= 2)
+            defs.formattedWrite("%s typeof(fn()) %s;\n", sp[0], sp[1]);
+        else
+            defs.formattedWrite("typeof(fn()) %s;\n", sp[0]);
+
+        inis.formattedWrite("%s = inits;\n", sp[$-1]);
+      }
 
         return [defs.data, inis.data];
     }
@@ -165,12 +183,25 @@ version(unittest)
   mixin defGlobalVariables!("foobarNhogehoge", "immutable foofoobogeNbar",
   (){
       return tuple(12, 13);
-  }
-  );
+  });
+
+  mixin defGlobalVariables!("myonmyonNFoo",
+  (){
+      return tuple(2);
+  });
+
+  mixin defGlobalVariables!("momimomiNFoo",
+  (){
+    return 3;
+  });
 
   unittest{
     assert(foobarNhogehoge == 12);
     assert(foofoobogeNbar == 13);
+    static assert(is(typeof(myonmyonNFoo) == int));
+    assert(myonmyonNFoo == 2);
+    static assert(is(typeof(momimomiNFoo) == int));
+    assert(momimomiNFoo == 3);
   }
 }
 
