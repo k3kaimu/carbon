@@ -15,9 +15,10 @@
         },
 
         {
-            "name": "check_libdev",
+            "name": "unittest",
             "targetType": "executable",
-            "buildOptions": ["debugMode", "coverage", "debugInfo", "unittests", "warningsAsErrors"],
+            "targetName": "unittest",
+            "buildOptions": ["debugMode", "debugInfo", "unittests", "warningsAsErrors"],
             "dflags": ["-main"],
        }
     ],
