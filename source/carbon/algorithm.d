@@ -29,6 +29,8 @@ D. Above three clauses are applied both to source and binary
 */
 module carbon.algorithm;
 
+public import std.algorithm;
+
 import carbon.functional,
        carbon.range,
        carbon.templates;
@@ -388,6 +390,34 @@ unittest
     auto r3 = [1, 2];
     assert(equal!equal(r3.flatMap!"repeat(a, a).repeat(a)",
         [[1], [2, 2], [2, 2]]));
+}
+
+
+/**
+Phobosの$(D std.algorithm.reduce)の拡張です。
+つまり、$(D r.reduceEx!f(init))という呼び出しが有効になります。
+*/
+template reduceEx(f...)
+if(f.length >= 1)
+{
+    auto ref reduceEx(R, E)(auto ref R r, auto ref E e)
+    if(is(typeof(std.algorithm.reduce!f(forward!e, forward!r))))
+    {
+        return std.algorithm.reduce!f(forward!e, forward!r);
+    }
+
+
+    auto ref reduceEx(R)(auto ref R r)
+    if(is(typeof(std.algorithm.reduce!f(forward!r))))
+    {
+        return std.algorithm.reduce!f(forward!r);
+    }
+}
+
+///
+unittest{
+    assert(reduceEx!"a+1"([1, 2, 3], 1) == reduce!"a+1"(1, [1, 2, 3]));
+    assert(reduceEx!"a+1"([1, 2, 3]) == reduce!"a+1"([1, 2, 3]));
 }
 
 
