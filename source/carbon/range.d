@@ -38,7 +38,9 @@ import std.algorithm,
 
 debug import std.stdio;
 
-import carbon.templates;
+import carbon.functional,
+       carbon.templates,
+       carbon.traits;
 
 
 /**
@@ -1647,4 +1649,104 @@ unittest
     assert(equal(d3.flatten!0, d3));
     assert(equal(d3.flatten!1, d2));
     assert(equal(d3.flatten!2, d1));
+}
+
+
+/**
+Haskell等の言語での$(D takeWhile)の実装です。
+この実装では、predは任意個数の引数を取ることができます。
+たとえば、2引数関数の場合、第一引数にはレンジの先頭の値が、第二引数にはレンジの次の値が格納されます。
+*/
+auto takeWhile(alias pred, R, T...)(R range, T args)
+{
+    template Parameter(U...)
+    {
+        enum bool empty = false;
+        alias front = U;
+        alias tail() = Parameter!(ElementType!R, U);
+    }
+
+
+    alias _pred = naryFun!pred;
+    enum arityN = argumentInfo!(_pred, Parameter!T).arity - T.length;
+
+  static if(arityN <= 1)
+    return TakeWhileResult!(_pred, arityN, R, T)(range, args);
+  else
+    return TakeWhileResult!(_pred, arityN, typeof(segment!arityN(range)), T)(segment!arityN(range), args);
+}
+
+
+private struct TakeWhileResult(alias _pred, size_t arityN, SegR, T...)
+{
+    @property
+    bool empty()
+    {
+        if(_r.empty)
+            return true;
+
+        static if(arityN == 0)
+            return !_pred(_subArgs);
+        else static if(arityN == 1)
+            return !_pred(_r.front, _subArgs);
+        else
+            return !_pred(_r.front.field, _subArgs);
+    }
+
+
+    @property
+    auto ref front()
+    {
+      static if(arityN <= 1)
+        return _r.front;
+      else
+        return _r.front.field[0];
+    }
+
+
+    void popFront()
+    {
+        _r.popFront();
+    }
+
+
+  static if(isForwardRange!(typeof(_r)))
+  {
+    @property
+    auto save()
+    {
+        return TakeWhileResult!(_pred, arityN, typeof(_r.save), T)(_r.save, _subArgs);
+    }
+  }
+
+  private:
+    SegR _r;
+    T _subArgs;
+}
+
+
+/// ditto
+unittest
+{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    int[] em;
+    assert(takeWhile!"true"(em).empty);
+
+    auto r1 = [1, 2, 3, 4, 3, 2, 1];
+    auto tw1 = takeWhile!"a < b"(r1);
+    assert(equal(tw1, [1, 2, 3]));
+
+    auto tw2 = takeWhile!"a < b && b < c"(r1);
+    assert(equal(tw2, [1, 2]));
+
+    auto tw3 = takeWhile!"a == (b - c)"(r1, 1);
+    assert(equal(tw3, [1, 2, 3]));
+
+    auto tw4 = takeWhile!"true"(r1);
+    assert(equal(tw4, r1));
+
+    auto tw5 = takeWhile!"false"(r1);
+    assert(tw5.empty);
 }
