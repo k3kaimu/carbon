@@ -381,6 +381,9 @@ if(isInputRange!R)
 ///
 unittest
 {
+    debug scope(failure) writefln("Unittest Failure :%s(%s) ", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto r1 = [1, 2, 3, 4];
     assert(equal(r1.flatMap!"repeat(a, a)", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]));
 
@@ -416,6 +419,9 @@ if(f.length >= 1)
 
 ///
 unittest{
+    debug scope(failure) writefln("Unittest Failure :%s(%s) ", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     assert(reduceEx!"a+1"([1, 2, 3], 1) == reduce!"a+1"(1, [1, 2, 3]));
     assert(reduceEx!"a+1"([1, 2, 3]) == reduce!"a+1"([1, 2, 3]));
 }
@@ -494,6 +500,9 @@ if(isInputRange!R && !isInfinite!R && is(typeof(binaryFun!fun(iniValue, r.front)
 ///
 unittest
 {
+    debug scope(failure) writefln("Unittest Failure :%s(%s) ", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     // test cases : http://zvon.org/other/haskell/Outputprelude/scanl_f.html
     assert(equal(scan!"a / b"(64, [4, 2, 4]), [64, 16, 8, 2]));
 

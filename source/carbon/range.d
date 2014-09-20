@@ -32,6 +32,7 @@ module carbon.range;
 
 
 import std.algorithm,
+       std.array,
        std.range,
        std.string,
        std.traits;
@@ -653,13 +654,13 @@ if(isRandomAccessRange!(Unqual!Range)
 
         @property Tuple!(TypeNuple!(E, N)) front()
         {
-            return (cast(typeof(return)[])(cast(ubyte[])_front))[0];
+            return (cast(typeof(return)[])cast(ubyte[])_front)[0];
         }
 
 
         @property Tuple!(TypeNuple!(E, N)) back()
         {
-            return (cast(typeof(return)[])(cast(ubyte[])_back))[0];
+            return (cast(typeof(return)[])cast(ubyte[])_back)[0];
         }
 
 
@@ -671,10 +672,10 @@ if(isRandomAccessRange!(Unqual!Range)
                 return this.back;
             else
             {
-                E[] dst;
+                E[N] dst;
                 foreach(j; 0 .. N)
-                    dst ~= _range[_fidx + i + j];
-                return (cast(typeof(return)[])(cast(ubyte[])dst))[0];
+                    dst[j] = _range[_fidx + i + j];
+                return (cast(typeof(return)[])(cast(ubyte[])(dst[])))[0];
             }
         }
 
@@ -767,7 +768,8 @@ unittest
     assert(equal(s3.retro, [tuple(0), tuple(1), tuple(2), tuple(3), tuple(4), tuple(5)].retro));
     auto r2 = map!"a*a"(r1);
     auto s4 = segment!2(r2); // On a forward range
-    assert(equal(s4, [tuple(0,1), tuple(1,4), tuple(4,9), tuple(9,16), tuple(16,25)][]));
+    auto s4_2 = segment!2(r2);
+    assert(equal(s4_2, [tuple(0,1), tuple(1,4), tuple(4,9), tuple(9,16), tuple(16,25)][]));
 }
 unittest
 {
@@ -1658,6 +1660,7 @@ Haskell等の言語での$(D takeWhile)の実装です。
 たとえば、2引数関数の場合、第一引数にはレンジの先頭の値が、第二引数にはレンジの次の値が格納されます。
 */
 auto takeWhile(alias pred, R, T...)(R range, T args)
+if(isInputRange!R)
 {
     template Parameter(U...)
     {
@@ -1665,7 +1668,6 @@ auto takeWhile(alias pred, R, T...)(R range, T args)
         alias front = U;
         alias tail() = Parameter!(ElementType!R, U);
     }
-
 
     alias _pred = naryFun!pred;
     enum arityN = argumentInfo!(_pred, Parameter!T).arity - T.length;
@@ -1675,6 +1677,7 @@ auto takeWhile(alias pred, R, T...)(R range, T args)
   else
     return TakeWhileResult!(_pred, arityN, typeof(segment!arityN(range)), T)(segment!arityN(range), args);
 }
+
 
 
 private struct TakeWhileResult(alias _pred, size_t arityN, SegR, T...)
@@ -1695,7 +1698,7 @@ private struct TakeWhileResult(alias _pred, size_t arityN, SegR, T...)
 
 
     @property
-    auto ref front()
+    auto front()
     {
       static if(arityN <= 1)
         return _r.front;
