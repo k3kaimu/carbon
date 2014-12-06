@@ -239,3 +239,11 @@ unittest
     assert(adaptTuple!(naryFun!"a", int)(tuple(1)) == 1);
 }
 
+
+/**
+関数を信頼関数にします
+*/
+auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
+{
+    return naryFun!fn(forward!args);
+}
