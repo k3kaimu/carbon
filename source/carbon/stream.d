@@ -32,7 +32,8 @@ D. Above three clauses are applied both to source and binary
 module carbon.stream;
 
 import carbon.math,
-       carbon.functional;
+       carbon.functional,
+       carbon.nonametype;
 
 import std.algorithm,
        std.container,
@@ -62,7 +63,7 @@ import std.algorithm,
     `stream.fetch()`は、待機後の`stream.empty()`を返す。
 + `stream`が無限レンジの場合、`stream.read(buf)`は常に`buf`の全要素に読み込む。
 */
-enum bool isInputStream(T) = is(typeof((T t){
+enum bool isInputStream(T) = isInputRange!T && is(typeof((T t){
         alias E = Unqual!(ElementType!T);
         while(!t.empty || !t.fetch()) E[] var = t.read(new E[1024]);
     }));
@@ -95,17 +96,9 @@ if(isInputStream!S)
     - `stream.readOp!((a, b) => b)(buf)`は、`stream.read(buf)`と等価です。
     - `stream.readOp!((a, b) => a + b)(buf)`は、`stream.readOp!"+"(buf)`と等価です。
 */
-enum bool isInplaceComputableStream(T) = isInputStream!T &&
-    is(typeof((T t){
-        alias E = Unqual!(ElementType!T);
-        E[] buf = t.readOp!""(new E[1024]);   // as read(buf)
-
-      static if(is(typeof(E.init + E.init) == E)){
-        buf = t.readOp!"+"(buf);        // OK, `a += b`
-        buf = t.readOp!"a+b"(buf);      // OK, `a = a + b`
-
-        buf = t.readOp!(naryFun!"a+b")(buf);
-      }
+enum bool isInplaceComputableStream(T, alias op = "", U = Unqual!(ElementType!T)) = isInputStream!T &&
+    is(typeof((T t, U[] buf){
+        buf = t.readOp!op(buf);   // as read(buf)
     }));
 
 
@@ -159,6 +152,7 @@ enum bool isBufferedInputStream(T) = isInputStream!T &&
 enum bool isBufferedOutputStream(T) = isOutputStream!T &&
     is(typeof((T t){
         auto buf = t.buffer;
+        static assert(is(typeof(buf) : E[], E));
         static assert(is(typeof(buf) == Unqual!(typeof(buf))));
         t.flush(buf.length);
     }));
@@ -174,16 +168,6 @@ if(is(typeof(mixin(`a` ~ op ~ `=b`))))
     return a;
 }
 
-
-/// ditto
-/*
-auto ref A binaryFunExt(alias func, A, B)(auto ref A a, auto ref B b)
-if(is(typeof(func) == string) && is(typeof(a = binaryFun!func(a, forward!b))))
-{
-    a = binaryFun!func(a, forward!b);
-    return a;
-}
-*/
 
 /// ditto
 auto ref A binaryFunExt(alias func, A, B)(auto ref A a, auto ref B b)
@@ -240,14 +224,13 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
         creal front() const @property { return this[0]; }
         void popFront() { _theta += _dt2PI * _freq; }
         enum bool empty = false;
-        PreciseComplexNCO save() const @property { return this; }
+        PreciseComplexNCO!() save() const @property { return this; }
         creal opIndex(size_t i) const @property { return std.math.expi(_theta + i * _dt2PI * _freq); }
         struct OpDollar{} enum OpDollar opDollar = OpDollar();
-        PreciseComplexNCO opSlice() const { return this; }
-        PreciseComplexNCO opSlice(size_t i, OpDollar) const { PreciseComplexNCO dst = this; dst._theta += i * _dt2PI * _freq; return dst; }
+        PreciseComplexNCO!() opSlice() const { return this; }
+        PreciseComplexNCO!() opSlice(size_t i, OpDollar) const { PreciseComplexNCO!() dst = this; dst._theta += i * _dt2PI * _freq; return dst; }
         auto opSlice(size_t i, size_t j) const { return this[i .. $].take(j - i); }
 
-        enum closed = false;
         bool fetch() { return false; }
 
         T[] readOp(alias op, T)(T[] buf)
@@ -268,11 +251,11 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
 
       @property
       {
-        real freq() const pure nothrow @safe @nogc { return _freq; }
-        void freq(real f) pure nothrow @safe @nogc { _freq = f; }
+        real freq() const @property { return _freq; }
+        void freq(real f) @property { _freq = f; }
 
-        real deltaT() const pure nothrow @safe @nogc { return _dt2PI / 2 / PI; }
-        void deltaT(real dt) pure nothrow @safe @nogc { _dt2PI = dt * 2 * PI; }
+        real deltaT() const @property { return _dt2PI / 2 / PI; }
+        void deltaT(real dt) @property { _dt2PI = dt * 2 * PI; }
       }
 
       private:
@@ -352,7 +335,6 @@ if(isPowOf2(divN))
         real deltaT() const @property { return _deltaT; }
         void deltaT(real t) @property { _deltaT = t; }
 
-        enum bool closed = false;
         bool fetch() { return false; }
 
         T[] readOp(alias op, T)(T[] buf)
@@ -417,15 +399,13 @@ body{
         const(E) front() const @property { return _arr[_pos]; }
         enum empty = false;
         void popFront() { ++_pos; _pos %= _arr.length; }
-        RepeatStream!() save() const { return this; }
+        RepeatStream!() save() const @property { return this; }
         const(E) opIndex(size_t i) const { return _arr[_pos % $]; }
         RepeatStream!() opSlice(){ return this; }
         struct OpDollar{} enum opDollar = OpDollar();
         RepeatStream!() opSlice(size_t i, OpDollar){ typeof(return) dst; dst._pos = (_pos + i) % _arr.length; return dst; }
         auto opSlice(size_t i, size_t j){ return this[i .. $].take(j - i); }
 
-
-        enum bool closed =  false;
         bool fetch() { return false; }
 
         U[] readOp(alias op, U)(U[] buf)
@@ -434,8 +414,8 @@ body{
             while(rem.length){
                 auto minL = min(rem.length, _arr.length - _pos);
 
-              static if(is(typeof(mixin(`rem[]` ~ func ~ `=_arr[]`))))
-                mixin(`rem[0 .. minL] `~ func ~ "= _arr[_pos .. _pos + minL];");
+              static if(is(typeof({ mixin(`rem[]` ~ op ~ `=_arr[];`); })))
+                mixin(`rem[0 .. minL] `~ op ~ "= _arr[_pos .. _pos + minL];");
               else{
                 auto rem_ptr = rem.ptr,
                      buf_ptr = () @trusted { return _arr.ptr + _pos; }();
@@ -473,6 +453,60 @@ body{
     return RepeatStream!()(array, 0);
 }
 
+
+/// ditto
+auto repeatStream(E)(E element)
+if(!is(E : T[], T))
+{
+    static struct RepeatStream()
+    {
+        enum bool empty = false;
+        auto front() const @property { return _e; }
+        void popFront() {}
+        auto save() @property { return this; }
+        auto save() const @property { return .repeatStream(_e); }
+        auto save() immutable @property { return .repeatStream(_e); }
+        auto opIndex(size_t) const @property { return _e; }
+        RepeatStream!() opSlice() const { return this; }
+        struct OpDollar{} enum opDollar = OpDollar();
+        RepeatStream!() opSlice(size_t, OpDollar) const { return this; }
+        auto opSlice(size_t i , size_t j) const { return this.take(j - i); }
+
+        bool fetch() { return false; }
+
+
+        U[] readOp(alias op, U)(U[] buf)
+        {
+          static if(is(typeof({ mixin(`buf[] ` ~ op ~ "= _e;"); })))
+            mixin(`buf[] ` ~ op ~ "= _e;");
+          else
+          {
+            auto p = buf.ptr,
+                 e = () @trusted { return p + buf.length; }();
+
+            while(p != e){
+                binaryFunExt!op(*p, _e);
+                () @trusted { ++p; }();
+            }
+          }
+
+            return buf;
+        }
+
+
+        U[] read(U)(U[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+      private:
+        E _e;
+    }
+
+
+    return RepeatStream!()(element);
+}
+
 ///
 unittest{
     int[] arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -490,6 +524,16 @@ unittest{
     assert(rs.readOp!"cast(short)b"(buf2) == buf1[0 .. 17]);
 }
 
+///
+unittest{
+    auto rs = 1.repeatStream;
+    static assert(isInfinite!(typeof(rs)));
+    static assert(isInputStream!(typeof(rs)));
+    static assert(isInplaceComputableStream!(typeof(rs)));
+
+    assert(rs.read(new int[4]) == [1, 1, 1, 1]);
+}
+
 
 /**
 一度に巨大なファイルを読み込むことに特化したバッファ持ち入力ストリームです。
@@ -501,6 +545,12 @@ if(is(Unqual!T == T))
     {
         private void refill()
         {
+            _pos = 0;
+            if(!_file.isOpen){
+                _buffer = null;
+                return;
+            }
+
             _pos = 0;
             immutable beforeSize = _buffer.length;
             _buffer = _file.rawRead(_buffer);
@@ -555,10 +605,6 @@ if(is(Unqual!T == T))
         E[] read(E)(E[] buf)
         if(isAssignable!(E, T))
         { return readOp!""(buf); }
-
-
-        /// ditto
-        alias closed = empty;
 
 
         /**
@@ -616,7 +662,7 @@ unittest{
 
     assert(sig1.availables.length == 1);
     sig1.consume(1);
-    assert(sig1.closed && sig1.empty);
+    assert(sig1.empty && sig1.fetch());
 }
 
 ///
@@ -629,7 +675,7 @@ unittest{
     auto sig1 = rawFileStream!int(fname);
     assert(sig1.availables == [0, 1, 2, 3, 4, 5]);
     sig1.consume(6);
-    assert(sig1.closed && sig1.empty);
+    assert(sig1.empty && sig1.fetch());
 }
 
 
@@ -638,7 +684,7 @@ unittest{
 ２つ目の信号は演算による理想信号でなければいけません。
 */
 auto mixer(Sg1, Sg2)(Sg1 sg1, Sg2 sg2)
-if(isInputStream!Sg1 && isInputStream!Sg2 && isInfinite!Sg2)
+if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "*") && isInfinite!Sg2)
 {
     static struct Mixer()
     {
@@ -651,8 +697,8 @@ if(isInputStream!Sg1 && isInputStream!Sg2 && isInfinite!Sg2)
 
         void popFront() { _sg1.popFront(); _sg2.popFront(); }
 
-        bool closed() const @property { return _sg1.closed; }
-        bool fetch() {
+        bool fetch()
+        {
           static if(isInfinite!Sg1)
             return false;
           else
@@ -665,16 +711,22 @@ if(isInputStream!Sg1 && isInputStream!Sg2 && isInfinite!Sg2)
 
         E[] read(E)(E[] buf)
         {
-            auto buf1 = _sg1.read(buf);
-            return _sg2.readOp!"*"(buf1);  // always, return buf1
+            return readOp!""(buf);
         }
 
 
         E[] readOp(alias op, E)(E[] buf)
-        if(op == "*" || op == "/")
+        if((op == "*" || op == "/")
+        && isInplaceComputableStream!(Sg1, op)
+        && isInplaceComputableStream!(Sg2, op))
         {
-            auto buf1 = _sg1.readOp!op(buf);
-            return _sg2.readOp!op(buf1);
+            return _sg2.readOp!op(_sg1.readOp!op(buf));
+        }
+
+
+        E[] readOp(alias op : "", E)(E[] buf)
+        {
+            return _sg2.readOp!"*"(_sg1.read(buf));
         }
 
 
@@ -707,6 +759,89 @@ unittest
     assert(mx2.read(buf2) == [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1]);
 }
 
+
+/**
+二つの信号を足します。
+２つ目の信号は、演算により生成された理想信号でなければいけません。
+*/
+auto adder(Sg1, Sg2)(Sg1 sg1, Sg2 sg2)
+if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "+") && isInfinite!Sg2)
+{
+    static struct Adder()
+    {
+        auto ref front() const @property { return _sg1.front + _sg2.front; }
+
+      static if(isInfinite!Sg1)
+        enum bool empty = false;
+      else
+        bool empty() const @property { return _sg1.empty; }
+
+        void popFront() { _sg1.popFront(); _sg2.popFront(); }
+
+        bool fetch() {
+          static if(isInfinite!Sg1)
+            return false;
+          else
+          {
+            if(!_sg1.empty) return false;
+            //_sg2.fetch();
+            return _sg1.fetch();
+          }
+        }
+
+        E[] read(E)(E[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+
+        E[] readOp(alias op, E)(E[] buf)
+        if((op == "+" || op == "-")
+        && isInplaceComputableStream!(Sg1, op)
+        && isInplaceComputableStream!(Sg2, op))
+        {
+            return _sg2.readOp!op(_sg1.readOp!op(buf));
+        }
+
+
+        E[] readOp(alias op : "", E)(E[] buf)
+        {
+            return _sg2.readOp!"+"(_sg1.read(buf));
+        }
+
+
+      private:
+        Sg1 _sg1;
+        Sg2 _sg2;
+    }
+
+
+    return Adder!()(sg1, sg2);
+}
+
+
+///
+unittest
+{
+    auto arr1 = [0, 1, 0, 1, 0, 1, 0, 1].repeatStream;
+    auto arr2 = [0, 0, 1, 1, 0, 0, 1, 1].repeatStream;
+    auto mx1 = arr1.adder(arr2);
+    static assert(isInfinite!(typeof(mx1)));
+    static assert(isInputStream!(typeof(mx1)));
+
+    int[] buf1 = new int[16];
+    assert(mx1.read(buf1) == [0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2]);
+}
+
+///
+unittest
+{
+    auto arr1 = [0, 1, 0, 1, 0, 1, 0, 1].repeatStream;
+    auto buf1 = arr1.adder(arr1).adder(arr1).read(new int[16]);
+    auto buf2 = arr1.amplifier(3).read(new int[16]);
+
+    assert(buf1 == buf2);
+}
 
 
 /**
@@ -790,11 +925,14 @@ auto accumulator(size_t N, Sg)(Sg sg, size_t bufSize = 1024 * 1024)
 }
 
 
+/// ditto
 auto accumulator(size_t N, Sg, E)(Sg sg, E[] buffer)
 if(isInputStream!Sg && is(ElementType!Sg : E))
 {
     static struct Accumulator()
     {
+        auto front() const @property { return availables[0]; }
+        void popFront() { consume(1); }
         bool empty() const @property { return _pos == _end; }
 
         bool fetch()
@@ -941,3 +1079,386 @@ unittest {
     writefln("%(\n%s%)", ts[].map!"a.usecs");
 }
 +/
+
+
+auto amplifier(Sg, F)(Sg sg, F gain)
+{
+    static struct Amplifier()
+    {
+        auto front() const @property { return _sg.front * _gain; }
+        void popFront() { _sg.popFront(); }
+        bool empty() const { return _sg.empty; }
+        bool fetch() { return _sg.fetch(); }
+
+
+        E[] readOp(string op, E)(E[] buf)
+        if((op == "*" || op == "/") && isInplaceComputableStream!(Sg, op, E))
+        {
+            buf = _sg.readOp!op(buf);
+            mixin("buf[]" ~ op ~ "= _gain;");
+
+            return buf;
+        }
+
+
+        E[] read(E)(E[] buf)
+        {
+            buf = _sg.read(buf);
+            buf[] *= _gain;
+
+            return buf;
+        }
+
+
+        F gain() const @property pure nothrow @safe @nogc { return _gain; }
+        void gain(F g) @property pure nothrow @safe @nogc { _gain = g; }
+
+
+      private:
+        Sg _sg;
+        F _gain;
+    }
+
+
+    return Amplifier!()(sg, gain);
+}
+
+///
+unittest
+{
+    auto arr4 = [0, 1, 2, 3].repeatStream,
+         amped = arr4.amplifier(4);
+
+    assert(amped.read(new int[4]) == [0, 4, 8, 12]);
+    static assert(isInplaceComputableStream!(typeof(arr4)));
+    static assert(isInplaceComputableStream!(typeof(amped), "*"));
+    static assert(isInplaceComputableStream!(typeof(amped), "/"));
+
+    auto arr = [3, 4, 1, 2];
+    assert(amped.readOp!"*"(arr) == [0, 16, 8, 24]);
+}
+
+
+auto selector(Sg...)(Sg sgs)
+{
+    static struct Selector()
+    {
+        import std.string : format;
+
+
+        auto front() const @property
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: return _sgs[%s].front;", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        void popFront()
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: _sgs[%s].popFront();", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        bool empty() const @property
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: return _sgs[%s].empty;", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        bool fetch()
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: return _sgs[%s].fetch();", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        E[] read(E)(E[] buf)
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: return _sgs[%s].read(buf);", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        E[] readOp(alias op, E)(E[] buf)
+        {
+            switch(_selectIndex){
+              foreach(i, E; Sg)
+                mixin(format("case %s: return _sgs[%s].readOp!op(buf);", i, i));
+              default: assert(0);
+            }
+        }
+
+
+        void select(size_t i)
+        in{
+            assert(i < Sg.length);
+        }
+        body{
+            _selectIndex = i;
+        }
+
+
+        void select(size_t i)()
+        {
+            static assert(i < Sg.length);
+            _selectIndex = i;
+        }
+
+
+      private:
+        Sg _sgs;
+        size_t _selectIndex;
+    }
+
+
+    return Selector!()(sgs, 0);
+}
+
+///
+unittest
+{
+    auto arr1 = 0.repeatStream,
+         arr2 = [0, 1].repeatStream,
+         arr3 = [0, 1, 2].repeatStream,
+         arr4 = [0, 1, 2, 3].repeatStream;
+
+    auto slt = selector(arr1, arr2, arr3, arr4);
+    assert(slt.read(new int[4]) == [0, 0, 0, 0]);
+    slt.select(1); // or slt.select!1;
+    assert(slt.read(new int[4]) == [0, 1, 0, 1]);
+    slt.select(2); // or slt.select!2;
+    assert(slt.read(new int[4]) == [0, 1, 2, 0]);
+    slt.select(3); // or slt.select!3;
+    assert(slt.read(new int[4]) == [0, 1, 2, 3]);
+}
+
+
+/**
+FIRフィルタを構成します。
+
+FIRフィルタの一般形は、z変換すれば次のような式で表すことができます。
+Y[n] = X[n]Σ(k[m]*z^(-m))
+
+この関数には、各タップの係数`k[m]`を指定することで任意のFIRフィルタを構築することができます。
+*/
+auto firFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps)
+if(isInputStream!Sg)
+{
+    return firFilter!(reduceFn, Sg, Unqual!E)(sg, taps, new Unqual!E[](taps.length));
+}
+
+
+///
+auto firFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] tap, E[] buf)
+if(isInputStream!Sg && is(E == Unqual!E))
+in{
+    assert(tap.length == buf.length);
+}
+body{
+    static struct FIRFiltered()
+    {
+        E front() const @property @trusted
+        {
+            E a = 0;
+
+            {
+                auto p1 = _tap[$ - 1 .. $].ptr,
+                     p2 = _buf[_idx .. $].ptr,
+                     e2 = _buf[$ .. $].ptr;
+
+                while(p2 != e2){
+                    a = naryFun!reduceFn(a, *p2, *p1);
+                    --p1;
+                    ++p2;
+                }
+            }
+
+            {
+                auto p1 = _tap.ptr + _idx-1,
+                     p2 = _buf[0 .. _idx].ptr,
+                     e2 = _buf[_idx .. $].ptr;
+
+                while(p2 != e2){
+                    a = naryFun!reduceFn(a, *p2, *p1);
+                    --p1;
+                    ++p2;
+                }
+            }
+
+            return a;
+        }
+
+
+        void popFront()
+        {
+            _buf[_idx] = _sg.front;
+            ++_idx;
+            _idx %= _buf.length;
+            _sg.popFront();
+        }
+
+      static if(isInfinite!Sg)
+        enum bool empty = false;
+      else
+        bool empty() const @property { return _sg.empty; }
+
+
+        bool fetch() { return _sg.fetch(); }
+
+
+        U[] readOp(alias op, U)(U[] buf)
+        {
+            auto p = buf.ptr,
+                 e = buf[$ .. $].ptr;
+
+            while(p != e && !this.empty){
+                binaryFunExt!op(*p, this.front);
+                this.popFront();
+                () @trusted { ++p; }();
+            }
+
+            return () @trusted { return buf[0 .. p - buf.ptr]; }();
+        }
+
+
+        U[] read(U)(U[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+
+      private:
+        Sg _sg;
+        const(E)[] _tap;
+        E[] _buf;
+        size_t _idx;
+    }
+
+
+    return FIRFiltered!()(sg, tap, buf, 0);
+}
+
+///
+unittest
+{
+    auto arr = [0, 1, 2, 3].repeatStream,
+         flt1 = arr.firFilter([0, 1]);
+
+    assert(flt1.read(new int[8]) == [0, 0, 0*1+1*0, 1, 2, 3, 0, 1]);
+
+    auto flt2 = arr.firFilter([1, 2]);
+    assert(flt2.read(new int[6]) == [0, 0, 0*2+1*1, 1*2+2*1, 2*2+3*1, 3*2+0*1]);
+}
+
+
+/**
+信号の絶対値の最大値を`limit`にするように線形に振幅を小さく、もしくは大きくします。
+*/
+auto normalizer(Sg, E)(Sg sg, E limit)
+if(isFloatingPoint!E)
+{
+    static struct Normalizer()
+    {
+        E front() @property
+        {
+            auto f = _sg.front,
+                 a = abs(f);
+
+            if(f == 0) return 0;
+
+            if(a > _max){
+                _max = a;
+
+                return _lim;
+            }
+
+            return f / _max * _lim;
+        }
+
+
+        auto empty() const @property { return _sg.empty; }
+        void popFront() { _sg.popFront(); }
+
+        bool fetch() { return _sg.fetch(); }
+
+
+        U[] read(U)(U[] buf)
+        {
+            buf = _sg.read(buf);
+
+            auto p = buf.ptr,
+                 e = buf[$ .. $].ptr;
+
+            while(p != e){
+                immutable v = abs(*p);
+                if(v == 0)
+                    *p = 0;
+                else{
+                    if(v > _max)
+                        _max = v;
+
+                    *p *= _lim / _max;
+                }
+
+                () @trusted { ++p; }();
+            }
+
+            return buf;
+        }
+
+
+        U[] readOp(alias op : "", U)(U[] buf)
+        {
+            return this.read(buf);
+        }
+
+
+        E[] readOp(alias op, E)(E[] buf)
+        {
+            auto p = buf.ptr,
+                 e = buf[$ .. $].ptr;
+
+            while(p != e && !this.empty){
+                binaryFunExt!op(*p, this.front);
+                this.popFront();
+                () @trusted { ++p; }();
+            }
+
+            return buf;
+        }
+
+
+      private:
+        Sg _sg;
+        E _lim;
+        E _max;
+    }
+
+    return Normalizer!()(sg, limit, 0);
+}
+
+///
+unittest
+{
+    auto arr = [0, 1, -2, 3].repeatStream,
+         nlz = arr.normalizer(1.5);
+
+    assert(equal!approxEqual(nlz.read(new float[8]), [0, 1.5, -1.5, 1.5, 0, 0.5, -1.0, 1.5]));
+}
