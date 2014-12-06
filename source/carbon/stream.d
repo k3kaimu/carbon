@@ -193,7 +193,7 @@ if(isInputRange!R && !isInputStream!R)
         alias closed = range.empty;
         bool fetch(){ return range.empty; }
 
-        E[] readOp(alias func)(E[] buf)
+        T[] readOp(alias func, T)(T[] buf)
         {
             auto p = buf.ptr;
             const end = () @trusted { return p + buf.length; }();
@@ -206,7 +206,7 @@ if(isInputRange!R && !isInputStream!R)
             return () @trusted { return buf[0 .. cast(size_t)(p - buf.ptr)]; }();
         }
 
-        E[] read(E[] buf) { return readOp!""(buf); }
+        T[] read(T)(T[] buf) { return readOp!""(buf); }
     }
 
 
@@ -247,7 +247,7 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
         }
 
 
-        creal[] read(creal[] buf){ return readOp!""(buf); }
+        Cpx[] read(Cpx)(Cpx[] buf){ return readOp!""(buf); }
 
       @property
       {
@@ -353,7 +353,7 @@ if(isPowOf2(divN))
         }
 
 
-        E[] read(E[] buf) @safe { return readOp!""(buf); }
+        T[] read(T)(T[] buf) @safe { return readOp!""(buf); }
 
       private:
         real _phase;
