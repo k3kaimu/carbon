@@ -120,7 +120,7 @@ enum bool isOutputStream(T, E) =
 
 /**
 */
-enum bool fillBufferOp(alias op, S, E)(ref S s, E[] buffer)
+E[] fillBufferOp(alias op, S, E)(ref S s, E[] buffer)
 {
     auto rem = buffer;
     while(rem.length && (!s.empty || !s.fetch()))
