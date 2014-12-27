@@ -33,6 +33,7 @@ module carbon.random;
 
 import std.random;
 
+
 // http://www.iro.umontreal.ca/~lecuyer/myftp/papers/lfsr04.pdf
 // http://www.iro.umontreal.ca/~lecuyer/myftp/papers/wellrng-errata.txt
 private struct WELLConstants_t(UInt)
@@ -216,7 +217,7 @@ enum WELLConstants_t!UIntType[string]
                 "M!(1)", "M!(3, -9)", "M!(3, -21)", "M!(3, 21)"
             ],
             doTempering : true,
-            temperingBC : [0xe46e1700, 0x9b868000]
+            temperingBC : [0xe46e1700U, 0x9b868000U]
         }),
 
     "21701a" : _makeStructConstant!(WELLConstants_t!UIntType, q{
@@ -259,11 +260,11 @@ enum WELLConstants_t!UIntType[string]
             wordSize : 32, regSize : 1391, rotN : 15,
             m : [23, 481, 229],
             ts : [
-                "M!(3, -24)", "M!(3, 30)", "M!(3, 10)", "M!(2, -26)",
+                "M!(3, -24)", "M!(3, 30)", "M!(3, -10)", "M!(2, -26)",
                 "M!(1)", "M!(3, 20)", "M!(6, 9, 5, 14, a[7])", "M!(1)"
             ],
             doTempering : true,
-            temperingBC : [0x93dd1400, 0xfa118000]
+            temperingBC : [0x93dd1400U, 0xfa118000U]
         })
     ];
 
@@ -272,6 +273,7 @@ enum WELLConstants_t!UIntType[string]
 */
 alias WELLEngine(string name) = WELLEngine!(uint, name);
 
+/// ditto
 struct WELLEngine(UIntType, string name)
 if(    name == "512a"
     || name == "521a" || name == "521b"
@@ -355,7 +357,7 @@ if(    name == "512a"
     {
       static if(Constant.doTempering)
       {
-        immutable x = _state[_stateIdx],
+        immutable UIntType x = _state[_stateIdx],
                   y = x ^ ((x << 7) & Constant.temperingBC[0]);
 
         return y ^ ((y << 15) & Constant.temperingBC[1]);
@@ -395,7 +397,6 @@ unittest
 
     rng.seed(100);
 
-    // http://sc.yutopp.net/entries/5335700643f75e10dc0014c9
     assert(equal(rng.save.take(8),
       [ 2230636158,
         1842930638,
@@ -416,7 +417,6 @@ unittest
     saved1.popFrontN(100);
     assert(equal(rng.save.take(64), saved1.save.take(64)));
 
-    // http://sc.yutopp.net/entries/53361aca43f75e10dc0014fb
     assert(rng.front == 1947823519);
     rng.popFront();
     rng.popFrontN(10000);
@@ -435,7 +435,6 @@ unittest
     static assert(isUniformRNG!(typeof(rng)));
     static assert(isSeedable!(typeof(rng)));
 
-    // http://sc.yutopp.net/entries/53361e0043f75e10dc001514
     assert(equal(rng.save.take(8),
       [ 1729689691,
         963076657,
@@ -466,7 +465,6 @@ unittest
     static assert(isUniformRNG!(typeof(rng)));
     static assert(isSeedable!(typeof(rng)));
 
-    // http://sc.yutopp.net/entries/53365f2b43f75e10dc001532
     assert(equal(rng.save.take(8),
       [ 3859347685,
         3376854944,
@@ -497,7 +495,6 @@ unittest
     static assert(isUniformRNG!(typeof(rng)));
     static assert(isSeedable!(typeof(rng)));
 
-    // http://sc.yutopp.net/entries/533662e443f75e10dc00154b
     assert(equal(rng.save.take(8),
       [ 1904938054,
         1236099671,
@@ -515,3 +512,34 @@ unittest
     rng.popFrontN(10000);
     assert(rng.front == 2913233053);
 }
+
+unittest
+{
+    import std.algorithm;
+    import std.range;
+    import std.stdio;
+
+    WELLEngine!"44497b" rng;
+    rng.seed(100);
+
+    static assert(isUniformRNG!(typeof(rng)));
+    static assert(isSeedable!(typeof(rng)));
+
+    assert(equal(rng.save.take(8),
+        [1913523270,
+         3946701399,
+         3211002116,
+         1993047553,
+         3283376203,
+         3676328617,
+         425402121,
+         1179532311,]));
+
+    rng.popFrontN(100);
+    assert(rng.front == 1015818016);
+    rng.popFront();
+
+    rng.popFrontN(10000);
+    assert(rng.front == 229698717);
+}
+
