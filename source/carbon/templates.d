@@ -84,9 +84,15 @@ template ToTRange(T...)
 {
   static if(T.length == 0)
     enum empty = true;
-  else{
+  else
+  {
     enum empty = false;
-    alias front = T[0];
+
+    static if(is(typeof({ alias f = T[0]; })))
+      alias front = T[0];
+    else
+      enum front = T[0];
+
     alias tail() = ToTRange!(T[1 .. $]);
   }
 }
@@ -104,7 +110,61 @@ template ToTuple(alias TR)
 }
 
 
-/*
+/**
+2つのTemplateRangeが等しいかどうか検証します。
+*/
+template isEquals(alias pred, alias A, alias B)
+if(isTemplateRange!A && isTemplateRange!B)
+{
+  static if(A.empty)
+    enum bool isEquals = B.empty;
+  else static if(B.empty)
+    enum bool isEquals = false;
+  else
+    enum bool isEquals = pred!(A.front, B.front) && isEquals!(pred, A.tail!(), B.tail!());
+}
+
+
+/// ditto
+template isEqualTypes(alias A, alias B)
+if(isTemplateRange!A && isTemplateRange!B)
+{
+    enum pred(A, B) = is(A == B);
+    enum bool isEqualTypes = isEquals!(pred, A, B);
+}
+
+
+/// ditto
+template isEqualValues(alias A, alias B)
+if(isTemplateRange!A && isTemplateRange!B)
+{
+    enum pred(alias A, alias B) = A == B;
+    enum bool isEqualValues = isEquals!(pred, A, B);
+}
+
+
+///
+unittest
+{
+    enum predT(A, B) = is(A == B);
+    alias Ts1 = ToTRange!(int, int, long);
+    alias Ts2 = ToTRange!(int, int, long);
+
+    static assert(isEquals!(predT, Ts1, Ts2));
+    static assert(isEqualTypes!(Ts1, Ts2));
+
+    enum predV(alias A, alias B) = A == B;
+    alias Vs1 = ToTRange!(1, 2, 3);
+    alias Vs2 = ToTRange!(1, 2, 3);
+
+    static assert(isEquals!(predV, Vs1, Vs2));
+    static assert(isEqualValues!(Vs1, Vs2));
+}
+
+
+/**
+テンプレート版レンジでの$(D_CODE std.range.iota)です。
+*/
 template Iota(size_t a, size_t b)
 if(a <= b)
 {
@@ -116,7 +176,16 @@ if(a <= b)
     enum front = a;
     alias tail() = Iota!(a+1, b);
   }
-}*/
+}
+
+///
+unittest
+{
+    alias Is = Iota!(0, 10);
+    alias Rs = ToTRange!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+    static assert(isEqualValues!(Is, Rs));
+}
 
 
 /**
