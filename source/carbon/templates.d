@@ -37,12 +37,12 @@ import std.typetuple;
 
 
 /**
-あるテンプレートが、テンプレートレンジかどうか判定します。
+あるテンプレートが、テンプレート版レンジかどうか判定します。
 
 Example:
 -------
-alias head = tmplt.front!();
-alias tail = tmplt.tail!();
+alias head = tmplt.front;   // 先頭要素
+alias tail = tmplt.tail!(); // 残り
 -------
 */
 enum isTemplateRange(alias tmplt) = is(typeof({
@@ -78,6 +78,159 @@ unittest
 
 
 /**
+タプルをテンプレート版レンジにします。
+*/
+template ToTRange(T...)
+{
+  static if(T.length == 0)
+    enum empty = true;
+  else{
+    enum empty = false;
+    alias front = T[0];
+    alias tail() = ToTRange!(T[1 .. $]);
+  }
+}
+
+
+/**
+テンプレート版レンジからタプルを作ります。
+*/
+template ToTuple(alias TR)
+{
+  static if(TR.empty)
+    alias ToTuple = TypeTuple!();
+  else
+    alias ToTuple = TypeTuple!(TR.front, ToTuple!(TR.tail!()));
+}
+
+
+/*
+template Iota(size_t a, size_t b)
+if(a <= b)
+{
+  static if(a == b)
+    enum empty = true;
+  else
+  {
+    enum empty = false;
+    enum front = a;
+    alias tail() = Iota!(a+1, b);
+  }
+}*/
+
+
+/**
+テンプレート版レンジでの、$(D_CODE std.algorithm.map)に相当します。
+*/
+template TRMap(alias tmpl, alias TR)
+if(isTemplateRange!TR)
+{
+  static if(TR.empty)
+    enum empty = true;
+  else
+  {
+    enum empty = false;
+    alias front = tmpl!(TR.front);
+    alias tail() = TRMap!(tmpl, TR.tail!());
+  }
+}
+
+///
+unittest
+{
+    alias Ts = TypeTuple!(int, long, char);
+    alias ToConstArray(T) = const(T)[];
+    alias Result = ToTuple!(TRMap!(ToConstArray, ToTRange!Ts));
+
+    static assert(is(Result
+                      == TypeTuple!(const(int)[],
+                                    const(long)[],
+                                    const(char)[])));
+}
+
+/+
+template TRReduce(alias tmpl, alias TR)
+if(isTemplateRange!TR && !TR.empty)
+{
+  static if(TR.empty)
+    alias Reduce = TypeTuple!();
+  else
+    alias Reduce = Reduce!(tmpl, TR.front, TR.tail!());
+}
+
+
+template Reduce(alias tmpl, alias Ini, alias TR)
+{
+  static if(TR.empty)
+    alias Reduce = Ini;
+  else
+    alias Reduce = Reduce!(tmpl, tmpl!(Ini, TR.front), TR.tail!());
+}
+
+
+/**
+永遠とタプルを返すようなテンプレートレンジを返します。
+*/
+template Repeat(T...)
+{
+    enum empty = false;
+    alias front = T;
+    alias tail() = Repeat!T;
+}
+
+
+///
+template RepeatN(size_t N, T...)
+{
+  static if(N == 0)
+    enum empty = true;
+  else
+  {
+    enum empty = false;
+    alias front = T;
+    alias tail() = Repeat!(N-1, T);
+  }
+}
+
+
+/**
+Template RangeのZipバージョンです
+*/
+template Zip(alias TR1, alias TR2)
+if(isTemplateRange!TR1 && isTemplateRange!TR2)
+{
+  static if(TR1.empty)
+    alias Zip = TR2;
+  else static if(TR2.empty)
+    alias Zip = TR1;
+  else
+  {
+    enum empty = false;
+    alias front = TypeTuple!(TR1.front, TR2.front);
+    alias tail() = Zip!(TR1.tail!(), TR2.tail!());
+  }
+}
+
+
+/**
+
+*/
+template Take(alias TR, size_t N)
+if(isTemplateRange!TR)
+{
+  static if(TR1.empty || N == 0)
+    enum empty = true;
+  else
+  {
+    enum empty = false;
+    alias front = TR1.front;
+    alias tail() = Take!(TR1.tail!(), N-1);
+  }
+}
++/
+
+
+/**
 ある型や値をN個並べたタプルを返します
 */
 template TypeNuple(A...)
@@ -89,6 +242,7 @@ if(A.length == 2 && is(typeof(A[1]) : size_t))
     alias TypeNuple = TypeTuple!(A[0], TypeNuple!(A[0], A[1] - 1));
 }
 
+///
 unittest
 {
     static assert(is(TypeNuple!(int, 2) == TypeTuple!(int, int)));
@@ -99,9 +253,13 @@ unittest
 /**
 自身を返します
 */
-template Identity(alias A)
+alias Identity(alias A) = A;
+alias Identity(A) = A;  /// ditto
+
+///
+unittest
 {
-    alias Identity = A;
+    static assert(is(int == Identity!int));
 }
 
 
@@ -206,3 +364,57 @@ version(unittest)
 }
 
 
+/**
+式を埋め込み可能な文字列リテラルを構築します
+*/
+template Lstr(alias str)
+if(isSomeString!(typeof(str)))
+{
+    import std.array, std.algorithm;
+    enum string Lstr = `(){ import std.format; import std.array; auto app = appender!string();` ~ generate(str) ~ ` return app.data ;}()`;
+
+    string generate(string s)
+    {
+        if(s.empty) return ``;
+
+        auto swF = s.findSplit("%[");
+        if(swF[1].empty) return `app ~= "` ~ s ~ `";`;
+
+        auto swE = swF[2].findSplit("%]");
+        if(swE[1].empty) return  `app ~= "` ~ s ~ `";`;
+
+        if(swE[0].empty) return `app ~= "` ~ swF[0] ~ `";`;
+
+        return `app ~= "` ~ swF[0] ~ `"; app.formattedWrite("%s", ` ~ swE[0] ~ `);` ~ generate(swE[2]);
+    }
+}
+
+///
+unittest{
+    {
+        int a = 12, b = 13;
+
+        assert(mixin(Lstr!"aaaa") == "aaaa");
+
+        // %[ から %] までがDの任意の式を表す。
+        assert(mixin(Lstr!`foo%[a+b%]bar%[a+10%]%[a%]`) == "foo25bar2212");
+    }
+
+    {
+        int a = 12;
+        string b = "3";
+        auto t = tuple(a, b);
+        string str = mixin(Lstr!`Element1 : %[t[0]%], Element2 : %[t[1]%]`);
+        assert(str == `Element1 : 12, Element2 : 3`);
+    }
+
+    {
+        int a = 12;
+        assert(mixin(Lstr!`foo%[a%]`) == "foo12");
+        assert(mixin(Lstr!`foo%[a%`) == `foo%[a%`);
+        assert(mixin(Lstr!`foo%[a`) == `foo%[a`);
+        assert(mixin(Lstr!`foo%[%]`) == `foo`);
+        assert(mixin(Lstr!`foo%[`) == `foo%[`);
+        assert(mixin(Lstr!`foo%`) == `foo%`);
+    }
+}
