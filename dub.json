@@ -24,5 +24,6 @@
     ],
 
     "dependencies": {
+        "lock-free": ">=0.1.1"
     }
 }
