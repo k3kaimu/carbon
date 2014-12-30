@@ -165,7 +165,7 @@ unittest
 /**
 テンプレート版レンジでの$(D_CODE std.range.iota)です。
 */
-template Iota(size_t a, size_t b)
+template TRIota(size_t a, size_t b)
 if(a <= b)
 {
   static if(a == b)
@@ -174,14 +174,14 @@ if(a <= b)
   {
     enum empty = false;
     enum front = a;
-    alias tail() = Iota!(a+1, b);
+    alias tail() = TRIota!(a+1, b);
   }
 }
 
 ///
 unittest
 {
-    alias Is = Iota!(0, 10);
+    alias Is = TRIota!(0, 10);
     alias Rs = ToTRange!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     static assert(isEqualValues!(Is, Rs));
