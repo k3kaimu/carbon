@@ -144,6 +144,7 @@ shared struct NChannel(size_t N, T...)
 
 
     static shared struct Node(size_t i)
+    if(i < N)
     {
         void put(size_t j, U)(U v)
         if(is(U : shared(U)) && isOneOfT!(CastOffShared!U, T) && i != j)
