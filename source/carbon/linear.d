@@ -49,7 +49,8 @@ version(unittest) import std.stdio;
 /**
 行列の格納方式
 */
-enum Major{
+enum Major
+{
     row,
     column,
 }
@@ -74,7 +75,9 @@ enum isMatrix(T) =
         size_t rsize = m.rows;
         size_t csize = m.cols;
 
-        auto e = m.at(0, 0);
+        size_t i = 0;
+
+        auto e = m.at(i, i);
     }));
 
 
@@ -256,8 +259,8 @@ unittest{
 
     alias TT = TypeTuple!(ubyte, ushort, uint, ulong,
                            byte,  short,  int,  long,
-                          float, double, real/*,
-                          creal, cfloat, cdouble*/);
+                          float, double, real,
+                          creal, cfloat, cdouble);
 
     foreach(T; TT)
     {
@@ -269,6 +272,22 @@ unittest{
     static assert(isNotVectorOrMatrix!BigInt);
     // static assert(isNotVectorOrMatrix!(CustomFloat!16)); In dmd2.064, isNotVectorOrMatrix!(CustomFloat!16) is true.
 }
+
+
+/**
+行列やベクトルのビューを取得します。
+*/
+enum bool hasView(T) = is(typeof((T m){
+        auto v = m.view;
+
+        static if(isMatrix!T)
+            static assert(isMatrix!(typeof(v)));
+        else static if(isAbstractMatrix!T)
+            static assert(isAbstractMatrix!(typeof(v)));
+        else static if(isVector!T)
+            static assert(isVector!T);
+    }));
+
 
 
 auto ref at(R)(auto ref R r, size_t i, size_t j)
@@ -1568,7 +1587,7 @@ if(isValidOperator!(Lhs, s, Rhs)
         return this.lhs.at(i, j) - this.rhs.at(i, j);
       else static if(etoSpec == ETOSpec.matrixMulMatrix)
       {
-        Unqual!(typeof(this.lhs.at(0, 0) * this.rhs.at(0, 0))) sum = 0;
+        auto sum = cast(Unqual!(typeof(this.lhs.at(0, 0) * this.rhs.at(0, 0))))0;
 
         static if(hasStaticCols!Lhs)
             immutable cnt = Lhs.cols;
@@ -5207,7 +5226,7 @@ template isPermutationMatrix(A)
 
 
 struct PLU(M)
-if(isNarrowMatrix!M && !isAbstractMatrix!M && isFloatingPoint!(ElementType!M))
+if(isNarrowMatrix!M && !isAbstractMatrix!M)
 {
   static if(hasStaticRows!M)
     alias rows = lu.rows;
@@ -5242,16 +5261,16 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M && isFloatingPoint!(ElementType!M))
             alias cols = rows;
 
 
-            auto opIndex(size_t i, size_t j) const
+            typeof(_lu[0, 0]) opIndex(size_t i, size_t j) const
             in{
                 assert(i < rows);
                 assert(j < cols);
             }
             body{
                 if(i == j)
-                    return 1;
+                    return cast(typeof(return))1;
                 else if(i < j)
-                    return 0;
+                    return cast(typeof(return))0;
                 else
                     return _lu[i, j];
             }
@@ -5284,14 +5303,14 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M && isFloatingPoint!(ElementType!M))
             alias cols = rows;
 
 
-            auto opIndex(size_t i, size_t j) const
+            typeof(_lu[0, 0]) opIndex(size_t i, size_t j) const
             in{
                 assert(i < rows);
                 assert(j < cols);
             }
             body{
                 if(i > j)
-                    return 0;
+                    return cast(typeof(return))0;
                 else
                     return _lu[i, j];
             }
@@ -5313,7 +5332,7 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M && isFloatingPoint!(ElementType!M))
     Ax = bとなるxを解きます
     */
     auto solveInPlace(V)(V b)
-    if(isVector!V && isFloatingPoint!(ElementType!V) && is(typeof({b[0] = real.init;})))
+    if(isVector!V /*&& isFloatingPoint!(ElementType!V) && is(typeof({b[0] = real.init;}))*/ )
     in{
         assert(b.length == rows);
     }
@@ -5368,7 +5387,7 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M && isFloatingPoint!(ElementType!M))
 
     auto det() @property
     {
-        ElementType!M dst = isEvenP ? 1 : -1;
+        auto dst = cast(ElementType!M)(isEvenP ? 1 : -1);
         foreach(i; 0 .. rows)
             dst *= lu[i, i];
 
@@ -5383,7 +5402,7 @@ In-Placeで、行列をLU分解します。
 "Numerical Recipes in C"
 */
 PLU!(A) pluDecomposeInPlace(A)(A m)
-if(isNarrowMatrix!A && isFloatingPoint!(ElementType!A) && hasLvalueElements!A && (!hasStaticRows!A || !hasStaticCols!A || is(typeof({static assert(A.rows == A.cols);}))))
+if(isNarrowMatrix!A && hasLvalueElements!A && (!hasStaticRows!A || !hasStaticCols!A || is(typeof({static assert(A.rows == A.cols);}))))
 in{
     assert(m.rows == m.cols);
 }
@@ -5413,7 +5432,7 @@ body{
 
     foreach(j; 0 .. size){
         foreach(i; 0 .. j){
-            real sum = m[i, j];
+            auto sum = m[i, j];
             foreach(k; 0 .. i) sum -= m[i, k] * m[k, j];
             m[i, j] = sum;
         }
@@ -5421,7 +5440,7 @@ body{
         real big = 0;
         size_t imax;
         foreach(i; j .. size){
-            real sum = m[i, j];
+            auto sum = m[i, j];
             foreach(k; 0 .. j) sum -= m[i, k] * m[k, j];
             m[i, j] = sum;
 
