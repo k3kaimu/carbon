@@ -30,7 +30,7 @@ D. Above three clauses are applied both to source and binary
 module carbon.nonametype;
 
 
-auto refT(alias var)()
+auto refT(alias var)() @safe
 {
     static struct RefT
     {
@@ -42,7 +42,7 @@ auto refT(alias var)()
 }
 
 
-auto refP(T)(T* p)
+auto refP(T)(T* p) @safe
 {
     static struct RefP
     {
@@ -52,4 +52,26 @@ auto refP(T)(T* p)
     }
 
     return RefP(p);
+}
+
+
+auto scopeRef(string str = "system", T)(ref T v)
+if(str == "system" || str == "trusted")
+{
+    mixin(`return () @` ~ str ~ ` { return refP(&v); }();`);
+}
+
+
+@safe
+unittest {
+    int a;
+    auto p = a.scopeRef!"trusted";
+    assert(p == 0);
+
+    p = 12;
+    assert(a == 12);
+
+    auto q = p;
+    ++q;
+    assert(a == p && a == 13);
 }
