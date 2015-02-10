@@ -31,6 +31,9 @@ module carbon.math;
 
 import std.math;
 import std.traits;
+import std.array;
+import std.range;
+import std.typecons;
 
 
 real toDeg(real rad) pure nothrow @safe
@@ -60,4 +63,240 @@ unittest{
     assert( 8.isPowOf2);
     assert(!9.isPowOf2);
     assert(!10.isPowOf2);
+}
+
+
+T sqrtFloor(T, F)(F x)
+if(isFloatingPoint!F)
+{
+    return cast(T)(sqrt(x));
+}
+
+
+T sqrtCeil(T, F)(F x)
+if(isFloatingPoint!F)
+{
+    return cast(T)(sqrt(x).ceil());
+}
+
+
+T lcm(T)(T x, T y)
+{
+    return x * (y / gcd(x, y));
+}
+
+
+pure bool isPrime(T)(T src)if(__traits(isIntegral,T)){
+    if(src <= 1)return false;
+    else if(src < 4)return true;
+    else if(!(src&1))return false;
+    else if(((src+1)%6) && ((src-1)%6))return false;
+    
+    T root = cast(T)sqrt(cast(real)src) + 1;
+    
+    for(T i = 5; i < root; i += 6)
+        if(!((src%i) && ((src)%(i+2))))
+            return false;
+
+    return true;
+}
+
+
+void primeFactors(T, R)(T n, ref R or)
+if(isOutputRange!(R, Tuple!(T, uint)))
+{
+    alias E = Tuple!(T, uint);
+
+    if(n < 0){
+        primeFactors(-n, or);
+        return;
+    }
+
+    if(n <= 1){
+        return;
+    }
+
+    import core.bitop;
+
+  static if(is(T == long) || is(T == ulong))
+  {
+    {
+        uint cnt;
+        immutable uint lns = n & uint.max;
+        if(auto c = bsf(lns))
+            cnt = c;
+        else if(lns == 0)
+            cnt = bsf(cast(uint)(n >> 32)) + 32;
+
+        if(cnt){
+            put(or, E(2, cnt));
+            n >>= cnt;
+        }
+    }
+  }
+  else
+  {
+    if(auto cnt = bsf(n)){
+        put(or, E(2, cnt));
+        n >>= cnt;
+    }
+  }
+
+    if(isPrime(n)){
+        put(or, E(n, 1));
+        return;
+    }
+
+    // Fermat's method
+    {
+        T x = cast(T)sqrt(cast(real)n),
+          y = 0;
+
+        T diff = x^^2 - n;
+        {
+            T cnt = 3;
+            bool sw;
+            while(diff != 0){
+                if(n % cnt == 0){
+                    // p = n / cnt, q = cnt
+                    auto p = n / cnt;
+                    x = (p + cnt) / 2;
+                    y = (p - cnt) / 2;
+                    diff = 0;
+                    break;
+                }
+                cnt += 2;
+
+                if(diff < 0){
+                    diff += 2*x + 1;
+                    ++x;
+                }else if(!sw && diff > 2*y+1){
+                    auto m = cast(T)ceil(sqrt((cast(real)y)^^2 + diff) - y);
+                    diff -= m * (m + 2 * y);
+                    y += m;
+                }else{
+                    sw = true;
+                    diff -= 2*y + 1;
+                    ++y;
+                }
+            }
+        }
+
+        T p = x + y,
+          q = x - y;
+
+        if(p == q){
+            auto dlg = (E e){
+                e[1] *= 2;
+                put(or, e);
+            };
+
+            primeFactors(p, dlg);
+            return;
+        }
+
+        if(isPrime(q)){
+            uint c = 1;
+            while(p % q == 0){
+                p /= q;
+                ++c;
+            }
+
+            put(or, E(q, c));
+        }else{
+            {
+                auto dlg = (E e){
+                    while(p % e[0] == 0){
+                        p /= e[0];
+                        ++e[1];
+                    }
+
+                    put(or, e);
+                };
+
+                primeFactors(q, dlg);
+            }
+        }
+
+        primeFactors(p, or);
+    }
+}
+
+
+Tuple!(T, uint)[] primeFactors(T)(T n)
+{
+    auto app = appender!(typeof(return))();
+    primeFactors(n, app);
+    return app.data;
+}
+
+
+unittest
+{
+    foreach(n; 2 .. 100000){
+        ulong m = 1;
+        foreach(ps; primeFactors(n))
+            m *= ps[0] ^^ ps[1];
+
+        assert(m == n);
+    }
+
+    foreach(n; 10_000_000L .. 10_001_000L){
+        ulong m = 1;
+        foreach(ps; primeFactors(n))
+            m *= ps[0] ^^ ps[1];
+
+        assert(m == n);
+    }
+}
+
+
+void primeFactorsSimple(T, R)(T n, ref R or)
+if(isOutputRange!(R, Tuple!(T, uint)))
+{
+    alias E = Tuple!(T, uint);
+    T m = 2;
+    while(n != 1){
+        if(isPrime(n)){
+            put(or, E(n, 1));
+            return;
+        }
+
+        uint c;
+        while(n % m == 0){
+            n /= m;
+            ++c;
+        }
+
+        if(c) put(or, E(m, c));
+        ++m;
+    }
+}
+
+
+Tuple!(T, uint)[] primeFactorsSimple(T)(T n)
+{
+    auto app = appender!(typeof(return))();
+    primeFactorsSimple(n, app);
+    return app.data;
+}
+
+
+unittest
+{
+    foreach(n; 2 .. 100000){
+        ulong m = 1;
+        foreach(ps; primeFactorsSimple(n))
+            m *= ps[0] ^^ ps[1];
+
+        assert(m == n);
+    }
+
+    foreach(n; 10_000_000L .. 10_001_000L){
+        ulong m = 1;
+        foreach(ps; primeFactorsSimple(n))
+            m *= ps[0] ^^ ps[1];
+
+        assert(m == n);
+    }
 }
