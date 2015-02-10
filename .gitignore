@@ -1,3 +1,4 @@
 carbon.sublime-project
 carbon.sublime-workspace
 *.lst
+.dub/
