@@ -447,14 +447,14 @@ if(isSomeString!(typeof(str)))
         if(s.empty) return ``;
 
         auto swF = s.findSplit("%[");
-        if(swF[1].empty) return `app ~= "` ~ s ~ `";`;
+        if(swF[1].empty) return "app ~= `" ~ s ~ "`;";
 
         auto swE = swF[2].findSplit("%]");
-        if(swE[1].empty) return  `app ~= "` ~ s ~ `";`;
+        if(swE[1].empty) return  "app ~= `" ~ s ~ "`;";
 
-        if(swE[0].empty) return `app ~= "` ~ swF[0] ~ `";`;
+        if(swE[0].empty) return "app ~= `" ~ swF[0] ~ "`;";
 
-        return `app ~= "` ~ swF[0] ~ `"; app.formattedWrite("%s", ` ~ swE[0] ~ `);` ~ generate(swE[2]);
+        return "app ~= `" ~ swF[0] ~ "`; app.formattedWrite(`%s`, " ~ swE[0] ~ ");" ~ generate(swE[2]);
     }
 }
 
@@ -486,4 +486,58 @@ unittest{
         assert(mixin(Lstr!`foo%[`) == `foo%[`);
         assert(mixin(Lstr!`foo%`) == `foo%`);
     }
+}
+
+
+template Qualifier(string qual)
+if(qual == "const"
+|| qual == "immutable"
+|| qual == "shared"
+|| qual == "inout")
+{
+    template ApplyTo(T)
+    {
+        alias ApplyTo = typeof(mixin(`cast(` ~ qual ~ `)T.init`));
+    }
+}
+
+unittest {
+    alias CI = Qualifier!"const".ApplyTo!int;
+    static assert(is(CI == const(int)));
+}
+
+
+template ApplySameTopQualifier(T, U)
+{
+  static if(is(T == const))
+    alias ApplySameTopQualifier = const(U);
+  else static if(is(T == immutable))
+    alias ApplySameTopQualifier = immutable(U);
+  else static if(is(T == shared))
+    alias ApplySameTopQualifier = shared(U);
+  else
+    alias ApplySameTopQualifier = U;
+}
+
+
+template isVersion(string identifier)
+{
+    mixin(mixin(Lstr!q{
+      version(%[identifier%])
+        enum isVersion = true;
+      else
+        enum isVersion = false;
+    }));
+}
+
+unittest
+{
+  version(Windows)
+    static assert(isVersion!"Windows");
+
+  version(OSX)
+    static assert(isVersion!"OSX");
+
+  version(linux)
+    static assert(isVersion!"linux");
 }
