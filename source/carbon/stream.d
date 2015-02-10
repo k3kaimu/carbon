@@ -297,7 +297,7 @@ Lookup-Table方式の高速な局部発振器を提供します。
 テンプレートパラメータの`func`には周期2PIの周期関数を与えることが出来ます。
 たとえば、`std.math.expi`を与えれば複素発振器となり、`std.math.sin`であれば正弦波を出力します。
 
-この局部発振器は周波数の動的な制御が可能であり、信号のドップラーシフトの追尾に最適です。
+この局部発振器は周波数の動的な制御が可能なので、信号の周波数をフィードバック制御する際に用いることができます。
 Lookup-Tableは、テンプレートパラメータ毎にプログラムの初期化時に生成されるので、
 最初の初期化が終われば、実行コストはテーブルの参照のみになり、高速にアクセス可能です。
 また、テーブル長を伸ばしても初期化コストが増加するだけで、実行コストはあまり大きくならないことも特徴です。
@@ -1254,7 +1254,7 @@ unittest
 FIRフィルタを構成します。
 
 FIRフィルタの一般形は、z変換すれば次のような式で表すことができます。
-Y[n] = X[n]Σ(k[m]*z^(-m))
+H[z] = Σ(k[m]*z^(-m))
 
 この関数には、各タップの係数`k[m]`を指定することで任意のFIRフィルタを構築することができます。
 */
@@ -1365,6 +1365,28 @@ unittest
 
     auto flt2 = arr.firFilter([1, 2]);
     assert(flt2.read(new int[6]) == [0, 0, 0*2+1*1, 1*2+2*1, 2*2+3*1, 3*2+0*1]);
+}
+
+
+/**
+IIRフィルタを構成します。
+
+IIRフィルタの一般形は、z変換すれば次のような式で表すことができます。
+H(z) = 1/Σ(k[m]*z^(-m))
+
+この関数には、各タップの係数`k[m]`を指定することで任意のIIRフィルタを構築することができます。
+*/
+auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps)
+if(isInputStream!Sg)
+{
+    return iirFilter!(reduceFn, Sg, Unqual!E)(sg, taps, new Unqual!E()(taps.length));
+}
+
+///
+auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps, E[] buf)
+if(isInputStream!Sg && is(E == Unqual!E))
+{
+
 }
 
 
