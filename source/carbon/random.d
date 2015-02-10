@@ -358,7 +358,7 @@ if(    name == "512a"
       static if(Constant.doTempering)
       {
         immutable UIntType x = _state[_stateIdx],
-                  y = x ^ ((x << 7) & Constant.temperingBC[0]);
+                           y = x ^ ((x << 7) & Constant.temperingBC[0]);
 
         return y ^ ((y << 15) & Constant.temperingBC[1]);
       }
@@ -543,3 +543,227 @@ unittest
     assert(rng.front == 229698717);
 }
 
+
+auto dist(string name, string boundaries = "[)", T1, T2, Rng)(T1 a, T2 b, ref Rng rng)
+if((name == "uni" || name == "uniform") && isUniformRNG!Rng)
+{
+    return uniform!boundaries(a, b, rng);
+}
+
+
+auto ref dist(string name, R, B, Rng)(R p, auto ref B t, auto ref B f, ref Rng rng)
+if((name == "ber" || name == "bernoulli") && is(R : real) && isUniformRNG!Rng)
+{
+    immutable R r = uniform01!R(rng);
+    if(r < p)
+        return t;
+    else
+        return f;
+}
+
+
+R dist(string name, R, Rng)(R lambda, ref Rng rng)
+if((name == "exp" || name == "exponential") && is(R : real) && isUniformRNG!Rng)
+{
+    return -log(uniform01!R(rng)) / lambda;
+}
+
+
+R dist(string name, R, Rng)(ref Rng rng)
+if(name == "stdNormal" && is(R : real) && isUniformRNG!Rng)
+{
+    immutable x = uniform01!R(rng),
+              y = uniform01!R(rng);
+
+    return sqrt(-2 * log(x)) * cos(2 * PI * y);
+}
+
+
+R dist(string name, R, Rng)(R mu, R sigma, ref Rng rng)
+if(name == "normal" && is(R : real) && isUniformRNG!Rng)
+{
+    return dist!"stdNormal"(rng) * sigma + mu;
+}
+
+
+//N dist(string name, N, R, Rng)(N n, R p, ref Rng rng)
+//if((name == "bin" || name == "binominal") && is(R : real) && is(N : ulong))
+//{
+
+//}
+
+
+template dist(string name, Params...)
+{
+    auto ref dist(T...)(auto ref T args)
+    {
+        return dist!(name, Params)(forward!args, std.random.rndGen);
+    }
+}
+
+
+///**
+//一様分布
+//*/
+//auto distGenerator(string name, string boundaries = "[)", T1, T2)(T1 a, T2 b)
+//{
+//    static struct Generator()
+//    {
+//        alias F = typeof(uniform(T1.init, T2.init, std.random.rndGen));
+
+//        F gen(alias bs = boundaries, T1, T2, Rng)(T1 a, T2 b, ref Rng rng)
+//        if(isUniformRNG!Rng)
+//        {
+//            return uniform!bs(a, b, rng);
+//        }
+
+
+//        F gen(alias bs = boundaries, T1, T2)(T1 a, T2 b)
+//        if(isUniformRNG!Rng)
+//        {
+//            return gen!bs(a, b, std.random.rndGen);
+//        }
+
+
+//        F gen(alias bs = boundaries, Rng)(ref Rng rng)
+//        if(isUniformRNG!Rng)
+//        {
+//            return gen!bs(_a, _b, rng);
+//        }
+
+
+//        F gen(alias bs = boundaries)()
+//        if(isUniformRNG!Rng)
+//        {
+//            return gen!bs(std.random.rndGen);
+//        }
+
+
+//        F opCall(Rng)(ref Rng rng)
+//        if(isUniformRNG!Rng)
+//        {
+//            return uniform!boundaries(_a, _b, rng);
+//        }
+
+
+//        F opCall()
+//        {
+//            return opCall(std.random.rndGen);
+//        }
+
+
+//      private:
+//        T1 _a;
+//        T2 _b;
+//    }
+
+
+//    return Generator!()(a, b);
+//}
+
+
+///**
+//ベルヌーイ分布
+//*/
+//auto distGenerator(string name, R, B = bool)(R p, B t = true, B f = false)
+//if((name == "ber" || name == "bernoulli") && is(R : real))
+//{
+//    static struct Generator()
+//    {
+//        auto ref gen(R, B, Rng)(R p, auto ref B t, auto ref B f, ref Rng rng)
+//        if(is(R : real) && isUniformRNG!Rng)
+//        {
+//            auto r = uniform01!R(rng);
+//            return r < p ? forward!t : forward!f;
+//        }
+
+
+//        auto ref gen(R, B, Rng)(R p, auto ref B t, auto ref B f)
+//        if(is(R : real))
+//        {
+//            return gen(p, forward!t, forward!f, std.random.rndGen);
+//        }
+
+
+//        auto ref gen(B, Rng)(auto ref B t, auto ref B f, ref Rng rng)
+//        {
+//            return gen(_p, forward!t, forward!f, std.random.rndGen);
+//        }
+
+
+//        B gen(R, Rng)(R p, ref Rng rng)
+//        {
+//            return gen(p, _t, _f, rng);
+//        }
+
+
+//        //B gen(R, Rng)
+//    }
+//}
+
+
+//template distRange(string name, TemplateParams...)
+//{
+//    auto distRange(RefRng, Params...)(RefRng rng, auto ref Params params)
+//    {
+//        alias D = typeof(distGenerator!(name, TemplateParams)(params));
+//        alias F = typeof(D.init(rng));
+
+
+//        static struct DistRange()
+//        {
+//            F front() @property
+//            {
+//                if(_cached)
+//                    return _cach;
+//                else{
+//                    _cach = _dGen(_rng);
+//                    _cached = true;
+//                    return _cach;
+//                }
+//            }
+
+
+//            void popFront()
+//            {
+//                if(_cached) _cached = false;
+//                else{
+//                    _rng.popFront;
+//                }
+//            }
+
+
+//          static if(isInfinite!RefRng)
+//            enum bool empty = false;
+//          else
+//          {
+//            bool empty() @property
+//            {
+//                return _rng.empty;
+//            }
+//          }
+
+
+//          private:
+//            RefRng _rng;
+//            D _dGen;
+//            F _cach;
+//            bool _cached;
+//        }
+
+//        return DistRange!()(rng, distGenerator!(name, Params)(forward!params), F.init, false);
+//    }
+//}
+
+//unittest
+//{
+//    import carbon.nonametype;
+
+//    WELLEngine!"512a" rng;
+//    rng.seed(100);
+
+//    auto r = rng.scopedRef!"trusted".distRange!("uni", "[)")(0, 10);
+//    static assert(isInputRange!(typeof(r)));
+//    foreach(e; r.take(1000))
+//        assert(e >= 0 && e < 10);
+//}
