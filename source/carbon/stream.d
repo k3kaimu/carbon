@@ -1368,7 +1368,7 @@ unittest
 }
 
 
-/**
+/*
 IIRフィルタを構成します。
 
 IIRフィルタの一般形は、z変換すれば次のような式で表すことができます。
@@ -1376,18 +1376,18 @@ H(z) = 1/Σ(k[m]*z^(-m))
 
 この関数には、各タップの係数`k[m]`を指定することで任意のIIRフィルタを構築することができます。
 */
-auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps)
-if(isInputStream!Sg)
-{
-    return iirFilter!(reduceFn, Sg, Unqual!E)(sg, taps, new Unqual!E()(taps.length));
-}
+//auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps)
+//if(isInputStream!Sg)
+//{
+//    return iirFilter!(reduceFn, Sg, Unqual!E)(sg, taps, new Unqual!E()(taps.length));
+//}
 
-///
-auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps, E[] buf)
-if(isInputStream!Sg && is(E == Unqual!E))
-{
+/////
+//auto iirFilter(alias reduceFn = "a+b*c", Sg, E)(Sg sg, const E[] taps, E[] buf)
+//if(isInputStream!Sg && is(E == Unqual!E))
+//{
 
-}
+//}
 
 
 /**
