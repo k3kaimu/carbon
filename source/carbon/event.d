@@ -1,4 +1,4 @@
-module graphite.events.eventutils;
+module carbon.event;
 
 import std.algorithm,
        phobosx.signal,  //
