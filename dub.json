@@ -9,20 +9,6 @@
     "importPaths": ["source"],
     "targetType": "library",
 
-    "configurations":[
-        {
-            "name": "use_as_lib",
-        },
-
-        {
-            "name": "unittest",
-            "targetType": "executable",
-            "targetName": "unittest",
-            "buildOptions": ["debugMode", "debugInfo", "unittests", "warningsAsErrors"],
-            "dflags": ["-main"],
-       }
-    ],
-
     "dependencies": {
         "lock-free": ">=0.1.1"
     }
