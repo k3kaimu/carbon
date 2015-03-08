@@ -32,7 +32,8 @@ module carbon.traits;
 
 import carbon.templates;
 
-import std.traits,
+import std.range,
+       std.traits,
        std.typetuple;
 
 
@@ -210,3 +211,47 @@ unittest
     static assert(is(Result1.ParameterTypeTuple[0] == double*));
     static assert(is(Result1.ReturnType == double*));
 }
+
+
+/**
+*/
+template isVersion(string identifier)
+{
+    mixin(mixin(Lstr!q{
+      version(%[identifier%])
+        enum isVersion = true;
+      else
+        enum isVersion = false;
+    }));
+}
+
+///
+unittest
+{
+  version(Windows)
+    static assert(isVersion!"Windows");
+
+  version(OSX)
+    static assert(isVersion!"OSX");
+
+  version(linux)
+    static assert(isVersion!"linux");
+}
+
+
+/**
+InputRangeのチェックを簡単にします
+
+Examples:
+--------------
+isIRangeEx!(int[], int) == isInputRange!(int[]) && is(ElementType!(int[]) : int)
+--------------
+*/
+enum bool isIRange(T) = isInputRange!T;
+enum bool isIRange(T, E) = isInputRange!T && is(ElementType!T : E);
+enum bool isFRange(T) = isForwardRange!T;
+enum bool isFRange(T, E) = isForwardRange!T && is(ElementType!T : E);
+enum bool isBRange(T) = isBidirectionalRange!T;
+enum bool isBRange(T, E) = isBidirectionalRange!T && is(ElementType!T : E);
+enum bool isRRange(T) = isRandomAccessRange!T;
+enum bool isRRange(T, E) = isRandomAccessRange!T && is(ElementType!T : E);

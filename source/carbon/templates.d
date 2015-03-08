@@ -518,26 +518,3 @@ template ApplySameTopQualifier(T, U)
   else
     alias ApplySameTopQualifier = U;
 }
-
-
-template isVersion(string identifier)
-{
-    mixin(mixin(Lstr!q{
-      version(%[identifier%])
-        enum isVersion = true;
-      else
-        enum isVersion = false;
-    }));
-}
-
-unittest
-{
-  version(Windows)
-    static assert(isVersion!"Windows");
-
-  version(OSX)
-    static assert(isVersion!"OSX");
-
-  version(linux)
-    static assert(isVersion!"linux");
-}

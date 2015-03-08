@@ -37,3 +37,12 @@ if(isAssociativeArray!AA)
   private:
     AA _aa;
 }
+
+unittest
+{
+    Cache!(int[string]) c;
+    assert(c("foo", 1) == 1);
+    assert(c("bar", 2) == 2);
+    assert(c("foo", 3) == 1);
+    assert(c("bar", 4) == 2);
+}

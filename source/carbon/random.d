@@ -299,10 +299,10 @@ if(    name == "512a"
     /// Mark as Random Number Generator
     enum isUniformRandom = true;
 
-    /// 取り得る最大値
+    /// maximum value
     enum UIntType max = uint.max;
 
-    /// 取り得る最小値
+    /// minimum value
     enum UIntType min = 0;
 
     /**
@@ -342,11 +342,12 @@ if(    name == "512a"
 
         immutable z0    = (*VRm1 & MASKL) | (*VRm2 & MASKU),
                   z1    = Constant.T!(Constant, 0)(*V0) ^ Constant.T!(Constant, 1)(*VM1),
-                  z2    = Constant.T!(Constant, 2)(*VM2) ^ Constant.T!(Constant, 3)(*VM3);
+                  z2    = Constant.T!(Constant, 2)(*VM2) ^ Constant.T!(Constant, 3)(*VM3),
+                  z3    = z1 ^ z2;
 
-        *newV1 = z1 ^ z2;
+        *newV1 = z3;
         *newV0 = Constant.T!(Constant, 4)(z0) ^ Constant.T!(Constant, 5)(z1)
-               ^ Constant.T!(Constant, 6)(z2) ^ Constant.T!(Constant, 7)(*newV1);
+               ^ Constant.T!(Constant, 6)(z2) ^ Constant.T!(Constant, 7)(z3);
 
         _stateIdx = (_stateIdx + Constant.regSize - 1) % Constant.regSize;
     }
