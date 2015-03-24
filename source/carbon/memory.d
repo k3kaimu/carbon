@@ -4,6 +4,7 @@ import carbon.functional;
 
 import core.exception;
 import core.stdc.stdlib;
+import core.memory;
 
 import std.algorithm;
 import std.conv;
@@ -57,7 +58,7 @@ extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @nogc @truste
 
 
 private
-E[] uninitializedCHeapArray(E)(size_t n) @trusted nothrow @nogc
+E[] uninitializedCHeapArray(E)(size_t n) @trusted nothrow
 {
     if(n){
         auto p = cast(E*)core.stdc.stdlib.malloc(n * E.sizeof);
@@ -79,7 +80,7 @@ E[] uninitializedCHeapArray(E)(size_t n) @trusted nothrow @nogc
 private
 void destroyCHeapArray(E)(ref E[] arr) nothrow @nogc
 {
-    static if(hasElaborateDestructor!T)
+    static if(hasElaborateDestructor!E)
         foreach(ref e; arr)
             callAllDtor(e);
 
@@ -400,6 +401,9 @@ auto toRefCounted(T)(T obj)
 }
 
 
+__EOF__
+
+
 struct UniqueArray(E, bool bMini = false)
 {
     private static
@@ -414,7 +418,7 @@ struct UniqueArray(E, bool bMini = false)
 
     /**
     */
-    this(size_t n) nothrow @trusted @nogc
+    this(size_t n) nothrow @trusted
     {
         immutable elemN = allocateSize(n);
 
@@ -621,9 +625,6 @@ unittest{
 
     auto rc = RefCountedNoGC!(UniqueArray!int)(3);
 }
-
-
-__EOF__
 
 
 struct RefCountedArrayImpl(E)

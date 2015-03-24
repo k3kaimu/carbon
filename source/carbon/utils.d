@@ -1,5 +1,7 @@
 module carbon.utils;
 
+import std.algorithm;
+import std.container;
 import std.traits;
 
 
@@ -45,4 +47,85 @@ unittest
     assert(c("bar", 2) == 2);
     assert(c("foo", 3) == 1);
     assert(c("bar", 4) == 2);
+}
+
+
+auto maybeModified(K, V)(V[K] aa)
+{
+    static struct Result()
+    {
+        this(V[K] aa)
+        {
+            _keys = typeof(_keys)(aa.byKey);
+
+            _aa = aa;
+        }
+
+
+        int opApply(int delegate(K, ref V) dg)
+        {
+            foreach(k; _keys)
+                if(auto res = dg(k, _aa[k]))
+                    return res;
+
+            return 0;
+        }
+
+      private:
+        Array!K _keys;
+        V[K] _aa;
+    }
+
+    return Result!()(aa);
+}
+
+unittest
+{
+    auto aa = ["a": 1, "b": 2, "c": 3];
+
+    foreach(k, ref v; aa.maybeModified){
+        aa[k ~ k] = v;
+    }
+
+    assert(aa.length == 6);
+}
+
+
+auto maybeModified(E)(E[] arr)
+{
+    static struct Result()
+    {
+        this(E[] arr)
+        {
+            _dup = Array!E(arr);
+        }
+
+
+        int opApply(int delegate(E) dg)
+        {
+            foreach(e; _dup)
+                if(auto res = dg(e))
+                    return res;
+
+            return 0;
+        }
+
+      private:
+        Array!E _dup;
+    }
+
+
+    return Result!()(arr);
+}
+
+unittest
+{
+    auto arr = [1, 2, 3];
+
+    foreach(v; arr.maybeModified){
+        arr ~= v;
+    }
+
+    assert(arr.length == 6);
+    assert(arr == [1, 2, 3, 1, 2, 3]);
 }

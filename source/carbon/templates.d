@@ -518,3 +518,14 @@ template ApplySameTopQualifier(T, U)
   else
     alias ApplySameTopQualifier = U;
 }
+
+
+void opOpAssign(string op, T, U)(ref T t, auto ref U u)
+{
+    mixin("t " ~ op ~ "= u;");
+}
+
+void opIndexOpAssign(string op, T, U, I)(ref T t, auto ref U u, I idx)
+{
+    mixin("t[idx] " ~ op ~ "= u;");
+}
