@@ -75,3 +75,15 @@ unittest {
     ++q;
     assert(a == p && a == 13);
 }
+
+
+
+class AssumeImplemented(C) : C
+{
+    import std.functional : forward;
+
+    this(T...)(auto ref T args)
+    {
+        super(forward!args);
+    }
+}

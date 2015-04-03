@@ -65,8 +65,9 @@ auto maybeModified(K, V)(V[K] aa)
         int opApply(int delegate(K, ref V) dg)
         {
             foreach(k; _keys)
-                if(auto res = dg(k, _aa[k]))
-                    return res;
+                if(k in _aa)
+                    if(auto res = dg(k, _aa[k]))
+                        return res;
 
             return 0;
         }
