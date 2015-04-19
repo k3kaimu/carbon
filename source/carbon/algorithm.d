@@ -41,7 +41,8 @@ import std.algorithm,
        std.functional,
        std.range,
        std.string,
-       std.traits;
+       std.traits,
+       std.typetuple;
 
 debug import std.stdio;
 

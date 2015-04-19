@@ -34,6 +34,7 @@ import std.algorithm;
 import std.regex;
 import std.traits;
 import std.typetuple;
+import std.typecons;
 
 
 /**

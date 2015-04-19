@@ -33,6 +33,7 @@ module carbon.functional;
 import std.algorithm,
        std.array,
        std.format,
+       std.functional,
        std.range,
        std.string,
        std.traits,
@@ -246,4 +247,22 @@ unittest
 auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
 {
     return naryFun!fn(forward!args);
+}
+
+
+/**
+
+*/
+auto ref observe(alias fn, T)(auto ref T v)
+{
+    fn(forward!v);
+    return (forward!v)[0];
+}
+
+///
+unittest
+{
+    int b;
+    observe!((a){ b = a; })(12);
+    assert(b == 12);
 }

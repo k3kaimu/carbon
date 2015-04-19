@@ -985,7 +985,7 @@ if(isBidirectionalRange!(Unqual!Range)
             for(int i = 0; i < N && !_bRange.empty; ++i, _bRange.popBack())
                 _back ~= _bRange.back();
 
-            _back = _back.reverse;
+            _back.reverse();
         }
 
 
@@ -1004,7 +1004,8 @@ if(isBidirectionalRange!(Unqual!Range)
 
             for(int i = 0; i < N && !_bRange.empty; ++i, _bRange.popBack())
                 _back ~= _bRange.back();
-            _back = _back.reverse;
+
+            _back.reverse();
         }
 
         
