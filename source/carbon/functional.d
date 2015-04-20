@@ -266,3 +266,12 @@ unittest
     observe!((a){ b = a; })(12);
     assert(b == 12);
 }
+
+
+/**
+
+*/
+auto ref call(alias f, T...)(auto ref T args)
+{
+    return f(forward!args);
+}
