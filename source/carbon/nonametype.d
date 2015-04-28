@@ -77,8 +77,8 @@ unittest {
 }
 
 
-
 class AssumeImplemented(C) : C
+if(is(C == class))
 {
     import std.functional : forward;
 
@@ -86,4 +86,53 @@ class AssumeImplemented(C) : C
     {
         super(forward!args);
     }
+}
+
+
+abstract class AssumeAbstract(C) : C
+if(is(C == class))
+{
+    import std.functional : forward;
+
+    this(T...)(auto ref T args)
+    {
+        super(forward!args);
+    }
+}
+
+
+class Override(C, string method)
+if(is(FuncType == function) && (is(C == class) || is(C == interface)))
+{
+    import std.functional : forward;
+
+    this(T...)(auto ref T args)
+    {
+        super(forward!args);
+    }
+
+
+    mixin("override " ~ method);
+}
+
+unittest
+{
+    class C { int foo() { return 1; } }
+    auto d = new Override!(C, "int foo(){ return 2; }")();
+    assert(d.foo() == 2);
+}
+
+
+class Implement(C, string fields) : C
+if(is(C == class) || is(C == interface))
+{
+    import std.functional : forward;
+
+    this(T...)(auto ref T args)
+    {
+        super(forward!args);
+    }
+
+
+    mixin(fields);
 }
