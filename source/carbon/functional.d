@@ -253,7 +253,7 @@ auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
 /**
 
 */
-auto ref observe(alias fn, T)(auto ref T v)
+auto ref digress(alias fn, T)(auto ref T v)
 {
     fn(forward!v);
     return (forward!v)[0];
@@ -263,7 +263,7 @@ auto ref observe(alias fn, T)(auto ref T v)
 unittest
 {
     int b;
-    observe!((a){ b = a; })(12);
+    digress!((a){ b = a; })(12);
     assert(b == 12);
 }
 
