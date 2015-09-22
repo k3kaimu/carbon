@@ -140,7 +140,8 @@ shared struct Channel(T...)
 
     alias AtomicDLists = ToTuple!(TRMap!(AtomicDList, ToTRange!T));
 
-    template isOneOfT(A, T...){
+    template isOneOfT(A, T...)
+    {
       static if(T.length == 0)
         enum bool isOneOfT = false;
       else
