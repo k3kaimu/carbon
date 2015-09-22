@@ -3977,6 +3977,82 @@ unittest{
     static assert(is(typeof(v.pref) == typeof(t.transpose)));
 }
 
+
+/**
+エルミート行列を返します
+*/
+auto hermitian(A)(A mat)
+if(isNarrowMatrix!A)
+{
+    static struct Hermitian()
+    {
+      static if(isAbstractMatrix!A)
+      {
+        enum size_t rows = wild;
+        enum size_t cols = wild;
+
+        static InferredResult inferSize(Msize_t rs, Msize_t cs)
+        {
+            return A.inferSize(cs, rs);
+        }
+      }
+      else
+      {
+        static if(hasStaticCols!A)
+            enum size_t rows = A.cols;
+        else
+            @property auto ref rows() inout { return _mat.cols; }
+
+        static if(hasStaticRows!A)
+            enum size_t cols = A.rows;
+        else
+            @property auto ref cols() inout { return _mat.rows; }
+      }
+
+
+        auto opIndex(size_t i, size_t j) inout
+        in{
+            assert(i < rows);
+            assert(j < cols);
+        }
+        body{
+            return _mat[j, i].conj;
+        }
+
+
+        mixin(defaultExprOps!(isAbstractMatrix!A));
+
+
+        auto ref hermitian() @property inout
+        {
+            return _mat;
+        }
+
+
+      private:
+        A _mat;
+    }
+
+    return Hermitian!()(mat);
+}
+unittest{
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+
+    SMatrix!(cfloat, 2, 2) m;
+    m = [[0+0i, 1+1i],
+         [2+2i, 3+3i]];
+
+    auto t = m.pref.hermitian;
+    assert(t[0, 0] == 0-0i);
+    assert(t[0, 1] == 2-2i);
+    assert(t[1, 0] == 1-1i);
+    assert(t[1, 1] == 3-3i);
+}
+
+
+
 /**
 
 */
