@@ -34,6 +34,25 @@ module carbon.random;
 import std.random;
 
 
+/**
+Mark as Uniform Random Number Generator
+*/
+auto asUniformRNG(R)(R range)
+if(isInputRange!R)
+{
+    static struct Result
+    {
+        enum bool isUniformRandom = true;
+
+        alias _this this;
+        R _this;
+    }
+
+
+    return Result(range)
+}
+
+
 // http://www.iro.umontreal.ca/~lecuyer/myftp/papers/lfsr04.pdf
 // http://www.iro.umontreal.ca/~lecuyer/myftp/papers/wellrng-errata.txt
 private struct WELLConstants_t(UInt)
@@ -542,6 +561,20 @@ unittest
 
     rng.popFrontN(10000);
     assert(rng.front == 229698717);
+}
+
+
+bool diceToF(F, R)(F p, ref Rng rng)
+if(isUniformRNG!Rng)
+{
+    return uniform01(rng) < p;
+}
+
+
+auto dist(string name)(ref Rng rng)
+if((name == "uni01" || name == "uniform01") && isUniformRNG!Rng)
+{
+    return uniform01(rng);
 }
 
 
