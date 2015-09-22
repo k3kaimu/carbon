@@ -253,25 +253,10 @@ auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
 /**
 
 */
-auto ref digress(alias fn, T)(auto ref T v)
+auto ref passTo(alias f, T...)(auto ref T args)
 {
-    fn(forward!v);
-    return (forward!v)[0];
-}
-
-///
-unittest
-{
-    int b;
-    digress!((a){ b = a; })(12);
-    assert(b == 12);
-}
-
-
-/**
-
-*/
-auto ref call(alias f, T...)(auto ref T args)
-{
-    return f(forward!args);
+    static if(is(typeof(f(args)) : void))
+        return digress!f(forward!args);
+    else
+        return call!f(forward!args);
 }
