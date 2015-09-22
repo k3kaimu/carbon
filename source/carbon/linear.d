@@ -958,6 +958,91 @@ unittest{
 }
 
 
+/**
+ポインタを管理します
+*/
+struct PMatrix(M)
+if(isMatrix!M)
+{
+    this(ref M m)
+    {
+        ptr = &m;
+    }
+
+
+    this(M* m)
+    {
+        ptr = m;
+    }
+
+
+    auto ref opIndex(size_t r, size_t c) inout
+    {
+        return (*ptr)[r, c];
+    }
+
+
+  static if(is(typeof({ enum r = M.rows; })))
+    enum rows = M.rows;
+  else
+  {
+    auto ref rows() inout @property { return ptr.rows; }
+
+    static if(is(typeof({ ptr.rows = ptr.rows; })))
+    void rows(typeof(ptr.rows) r) { ptr.rows = r; }
+  }
+
+
+  static if(is(typeof({ enum r = M.cols; })))
+    enum cols = M.cols;
+  else
+  {
+    auto ref cols() inout @property { return ptr.cols; }
+
+    static if(is(typeof({ ptr.cols = ptr.cols; })))
+    void cols(typeof(ptr.cols) r) { ptr.cols = r; }
+  }
+
+
+    M* ptr;
+    ref inout(typeof(this)) pref() inout pure nothrow @safe @nogc { return this; }
+
+
+    void opAssign(X)(auto ref X m)
+    if(is(typeof(*ptr = m)))
+    {
+        *ptr = m;
+    }
+
+
+    mixin(ExpressionOperators!(ETOSpec.all & ~ETOSpec.opAssign, mixin(is(typeof({enum _unused_ = rows;})) ? "this.rows" : "wild"), mixin(is(typeof({enum _unused_ = cols;})) ? "this.cols" : "wild")).stringMixin);
+}
+
+
+auto pref(NMatrix)(ref NMatrix nm) @property @trusted
+if(isMatrix!NMatrix || isAbstractMatrix!NMatrix)
+{
+    return PMatrix!NMatrix(nm);
+}
+
+unittest
+{
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+
+    SMatrix!(int, 2, 2) m;
+    m = [[0, 1],
+         [2, 3]];
+
+    auto t = m.pref;
+    assert(t[0, 0] == 0);
+    assert(t[0, 1] == 1);
+    assert(t[1, 0] == 2);
+    assert(t[1, 1] == 3);
+}
+
+
 
 /**
 正しい演算かどうか判定します
