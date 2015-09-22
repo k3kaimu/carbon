@@ -36,6 +36,7 @@ import std.algorithm,
        std.bigint,
        std.format,
        std.functional,
+       std.stdio,
        std.traits;
 
 /*
@@ -101,6 +102,9 @@ is(typeof({
     b = a == 0;
 }));
 unittest{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     static assert(!isLikeInt!(byte));
     static assert(!isLikeInt!(short));
     static assert(isLikeInt!(int));
@@ -168,6 +172,9 @@ template isLikeBuiltInInt(T)
                          && isSafe!(() => checkCode(T.init));
 }
 unittest{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     static assert(isLikeBuiltInInt!int);
     static assert(isLikeBuiltInInt!long);
 }
@@ -716,6 +723,9 @@ alias over = rational;
 
 ///
 unittest{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     import std.stdio;
 
     static void foo(T)()
@@ -960,6 +970,9 @@ template isRationalType(T){
 
 unittest
 {
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     static assert(isRationalType!(Rational!int));
     static assert(isRationalType!(Rational!uint));
     static assert(isRationalType!(Rational!long));

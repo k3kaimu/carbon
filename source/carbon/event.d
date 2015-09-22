@@ -4,6 +4,7 @@ import std.algorithm,
        phobosx.signal,  //
        std.variant;
 
+version(D_X32):
 
 public import phobosx.signal : RestrictedSignal;
 

@@ -2481,8 +2481,8 @@ template defaultExprOps(bool isInferable = false)
 
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     static struct M(size_t rs, size_t cs)
@@ -2720,8 +2720,8 @@ if(isAbstractMatrix!A && A.inferSize(rs, cs).isValid)
 
 ///
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     static struct I{
@@ -2807,8 +2807,8 @@ body{
 
 ///
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     static struct I{
@@ -2905,8 +2905,8 @@ body{
 
 /// ditto
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     static struct D{
@@ -3433,8 +3433,8 @@ body{
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
     auto mr = matrix!(2, 3)([0, 1, 2, 3, 4, 5]);
     static assert(isNarrowMatrix!(typeof(mr)));
@@ -3497,8 +3497,8 @@ body{
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
     auto mr = matrix!(2, 3)([0, 1, 2, 3, 4, 5]);
     static assert(isNarrowMatrix!(typeof(mr)));
@@ -3535,8 +3535,8 @@ auto matrix(Major mjr = Major.row, T, size_t N, size_t M)(ref T[M][N] arr)
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
     int[3][2] arr = [[0, 1, 2], [3, 4, 5]];
 
@@ -3721,8 +3721,8 @@ if(rs >= 0 && cs >= 0)
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 3, 3) m;
@@ -3738,8 +3738,8 @@ unittest{
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 2, 2, Major.row) mr;    // 2x2, int型, 行優先
@@ -3765,8 +3765,8 @@ unittest{
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 1, 3) m;
@@ -3777,8 +3777,8 @@ unittest{
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 2, 2) m;
@@ -3797,8 +3797,8 @@ unittest{
 
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     alias SRVector!(int, 3) R;
@@ -4119,8 +4119,8 @@ if(isNarrowMatrix!A)
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 3, 3) rm33;
@@ -4236,8 +4236,8 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
     return ToFlatten!()(mat, 0, mat.rows * mat.cols);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 3, 3, Major.row) rm33;
@@ -4321,8 +4321,8 @@ if(isRandomAccessRange!R && isNotVectorOrMatrix!(Unqual!(std.range.ElementType!R
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto r = iota(4);
@@ -4333,8 +4333,8 @@ unittest{
     assert(mc.toFlatten.equal([0, 2, 1, 3]));
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto mem = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -4352,8 +4352,8 @@ unittest{
                                             0, 0, 0, 0, 0, 15]));
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto mem = [0, 1, 2, 3];
@@ -4427,8 +4427,8 @@ if(isRandomAccessRange!R && isRandomAccessRange!(Unqual!(std.range.ElementType!R
     return ToMatrix!()(range);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto arr = [[0, 1], [2, 3], [4, 5]];
@@ -4449,8 +4449,8 @@ unittest{
     assert(r5 == r1);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto arr = [[0, 1], [2, 3], [4, 5]];
@@ -4507,8 +4507,8 @@ auto identity(E)()if(isNotVectorOrMatrix!E)
     return Identity!()();
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto id = identity!int;
@@ -4577,8 +4577,8 @@ auto ones(E)()if(isNotVectorOrMatrix!E)
     return Ones!().init;
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto m1 = ones!float;
@@ -4651,8 +4651,8 @@ body{
   }
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto m1 = [[0, 1], [2, 3], [4, 5]].toMatrix!(3, 2, Major.row);
@@ -4938,8 +4938,8 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
 }
 
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto org = matrix!((i, j) => i * 3 + j)();
@@ -5132,8 +5132,8 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A && (!(hasStaticRows!A && hasStaticCol
     return sum;
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto m = SMatrix!(int, 2, 2)();
@@ -5164,8 +5164,8 @@ body{
     return sum;
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto rv = SRVector!(int, 3)(),
@@ -5227,8 +5227,8 @@ body{
     return CrossResult(vec1, vec2);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto rv = SVector!(int, 3)(),
@@ -5284,8 +5284,8 @@ if(isVector!V1 && isVector!V2)
     return Cartesian!()(vec1, vec2);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     auto v1 = [0, 1, 2, 3].toMatrix!(3, 1);
