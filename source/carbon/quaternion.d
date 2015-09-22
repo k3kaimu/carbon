@@ -152,9 +152,9 @@ if(isNotVectorOrMatrix!S)
 
 
     @property
-    auto v() pure nothrow @safe inout
+    auto v(this T)() pure nothrow @safe
     {
-        return _vec4.stackRef.swizzle.bcd;
+        return _vec4.pref.swizzle.bcd;
     }
 
 
@@ -183,14 +183,14 @@ if(isNotVectorOrMatrix!S)
     Quaternion!(CommonType!(S, E)) opBinary(string op : "+", E)(in Quaternion!E q) const
     if(!is(CommonType!(S, E) == void))
     {
-        return typeof(return)(typeof(typeof(return).init._vec4)(this._vec4 + q._vec4));
+        return typeof(return)(typeof(typeof(return).init._vec4)(this._vec4.pref + q._vec4));
     }
 
 
     Quaternion!(CommonType!(S, E)) opBinary(string op : "-", E)(in Quaternion!E q) const
     if(!is(CommonType!(S, E) == void))
     {
-        return typeof(return)(typeof(typeof(return).init._vec4)(this._vec4 - q._vec4));
+        return typeof(return)(typeof(typeof(return).init._vec4)(this._vec4.pref - q._vec4));
     }
 
 

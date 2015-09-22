@@ -4125,10 +4125,10 @@ unittest{
 
     SMatrix!(int, 3, 3) rm33;
     rm33[0, 0] = 1; rm33[0, 1] = 2; rm33[0, 2] = 3;
-    assert(equal!"equal(a, b)"(rm33.stackRef.toRange, [[1, 2, 3], [0, 0, 0], [0, 0, 0]]));
+    assert(equal!"equal(a, b)"(rm33.pref.toRange, [[1, 2, 3], [0, 0, 0], [0, 0, 0]]));
 
     SMatrix!(int, 1, 1) rm11;
-    assert(equal!"equal(a, b)"(rm11.stackRef.toRange, [[0]]));
+    assert(equal!"equal(a, b)"(rm11.pref.toRange, [[0]]));
 }
 
 
@@ -4519,7 +4519,7 @@ unittest{
 
     auto m1 = SMatrix!(int, 2, 2).init;
     m1.array[] = [0, 1, 2, 3];
-    assert(equal((m1 * id).toFlatten, [0, 1, 2, 3]));
+    assert(equal((m1.pref * id).toFlatten, [0, 1, 2, 3]));
 
     auto id2 = id + id;
     static assert(isAbstractMatrix!(typeof(id2)));
@@ -5154,7 +5154,7 @@ in{
     }
 }
 body{
-    alias typeof(ElementType!V1.init * ElementType!V2.init) T;
+    alias Unqual!(typeof(ElementType!V1.init * ElementType!V2.init)) T;
     T sum = cast(T)0;
 
     foreach(i; 0 .. vec1.length){
@@ -5174,7 +5174,7 @@ unittest{
     rv.array[] = [0, 1, 2];
     cv.array[] = [1, 2, 3];
 
-    assert((rv * cv)[0] == 8);  //8
+    assert((rv.pref * cv)[0] == 8);  //8
     assert(rv.dot(cv) == 8);
     assert(cv.dot(rv) == 8);
 
@@ -5182,7 +5182,7 @@ unittest{
     assert(cv.dot(cv) == 14);
 
 
-    assert(approxEqual((rv * 0.5).dot(rv), 2.5));
+    assert(approxEqual((rv.pref * 0.5).dot(rv), 2.5));
 }
 
 
@@ -5680,7 +5680,7 @@ unittest{
 
     SMatrix!(real, 3, 3) org = m;
     auto plu = m.pluDecomposeInPlace();
-    auto iden = org * plu.inverse;
+    auto iden = org.pref * plu.inverse;
     
     foreach(i; 0 .. 3)
         foreach(j; 0 .. 3)
