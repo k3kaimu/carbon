@@ -34,7 +34,7 @@ auto refT(alias var)() @safe
 {
     static struct RefT
     {
-        auto ref get() pure nothrow @safe @nogc @property { return a; }
+        auto ref get() pure nothrow @safe @nogc @property { return var; }
         alias get this;
     }
 
@@ -101,8 +101,8 @@ if(is(C == class))
 }
 
 
-class Override(C, string method)
-if(is(FuncType == function) && (is(C == class) || is(C == interface)))
+class Override(C, string method) : C
+if(is(C == class) || is(C == interface))
 {
     import std.functional : forward;
 
@@ -117,8 +117,8 @@ if(is(FuncType == function) && (is(C == class) || is(C == interface)))
 
 unittest
 {
-    class C { int foo() { return 1; } }
-    auto d = new Override!(C, "int foo(){ return 2; }")();
+    static class C { int foo() { return 1; } }
+    C d = new Override!(C, "int foo(){ return 2; }")();
     assert(d.foo() == 2);
 }
 
@@ -135,4 +135,11 @@ if(is(C == class) || is(C == interface))
 
 
     mixin(fields);
+}
+
+unittest
+{
+    static class C {}
+    auto d = new Implement!(C, "int foo(){ return 2; }")();
+    assert(d.foo() == 2);
 }
