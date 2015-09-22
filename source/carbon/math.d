@@ -35,6 +35,8 @@ import std.array;
 import std.range;
 import std.typecons;
 
+import core.bitop;
+
 
 real toDeg(real rad) pure nothrow @safe
 {
@@ -63,6 +65,68 @@ unittest{
     assert( 8.isPowOf2);
     assert(!9.isPowOf2);
     assert(!10.isPowOf2);
+}
+
+
+/**
+nextが1である場合に、next2Pow(num)はnumより大きく、かつ、最小の2の累乗数を返します。
+
+もし、nextが0であれば、next2Powはnumより小さく、かつ、最大の2の累乗数を返します。
+nextがm > 1の場合には、next2Pow(num, m)は、next2Pow(num) << (m - 1)を返します。
+*/
+size_t nextPowOf2(T)(T num, size_t next = 1)
+if(isIntegral!T)
+in{
+    assert(num >= 1);
+}
+body{
+    static size_t castToSize_t(X)(X value)
+    {
+      static if(is(X : size_t))
+        return value;
+      else
+        return value.to!size_t();
+    }
+
+    return (cast(size_t)1) << (bsr(castToSize_t(num)) + next);
+}
+
+///
+pure nothrow @safe unittest{
+    assert(nextPowOf2(10) == 16);           // デフォルトではnext = 1なので、次の2の累乗数を返す
+    assert(nextPowOf2(10, 0) == 8);         // next = 0だと、前の2の累乗数を返す
+    assert(nextPowOf2(10, 2) == 32);        // next = 2なので、next2Pow(10) << 1を返す。
+}
+
+
+/// ditto
+F nextPowOf2(F)(F num, size_t next = 1)
+if(isFloatingPoint!F)
+in{
+    assert(num >= 1);
+}
+body{
+    int n = void;
+    frexp(num, n);
+    return (cast(F)2.0) ^^ (n + next - 1);
+}
+
+///
+pure nothrow @safe unittest{
+    assert(nextPowOf2(10.0) == 16.0);
+    assert(nextPowOf2(10.0, 0) == 8.0);
+    assert(nextPowOf2(10.0, 2) == 32.0);
+}
+
+
+/**
+numより小さく、かつ最大の2の累乗を返します。
+
+nextPowOf2(num, 0)に等価です
+*/
+auto previousPowOf2(T)(T num)
+{
+    return nextPowOf2(num, 0);
 }
 
 
