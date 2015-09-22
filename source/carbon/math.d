@@ -300,3 +300,66 @@ unittest
         assert(m == n);
     }
 }
+
+
+struct Imaginary(T)
+{
+    E im;
+
+    E re() const @property { return 0; }
+
+    Imaginary!(CommonType!(T, U)) opBinary(string op: "+", U)(Imaginary!U rhs) const { return typeof(return)(im + rhs.im); }
+}
+
+
+C complexZero(C)() @property
+{
+  static if(is(C == creal) || is(C == cdouble) || is(C == cfloat))
+  {
+    C zero = 0+0i;
+    return zero;
+  }
+  else
+    return C(0, 0);
+}
+
+
+/*
+struct Integrator(T)
+{
+    T value;
+    size_t count;
+
+
+    U average(U = T)() @property
+    {
+        return cast(U)(value) / count;
+    }
+
+
+    Integrator!(typeof(T.init + U.init)) opBinary(string op: "+", U)(U v)
+    {
+        return typeof(return)(value + v, count+1);
+    }
+
+
+    Integrator!(typeof(T.init + U.init)) opBinary(string op: "-", U)(U v)
+    {
+        return typeof(return)(value - v, count-1);
+    }
+
+
+    void opBinaryAssign(string op: "+", U)(U v)
+    {
+        value += v;
+        ++count;
+    }
+
+
+    void opBinaryAssign(string op: "-", U)(U v)
+    {
+        value -= v;
+        --count;
+    }
+}
+*/
