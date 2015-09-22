@@ -37,6 +37,21 @@ import std.range,
        std.typetuple;
 
 
+enum bool isBuiltInImaginary(T) = is(T : ireal);
+enum bool isBuiltInComplex(T) = is(T : creal);
+
+unittest
+{
+    static assert(isBuiltInImaginary!(ifloat));
+    static assert(isBuiltInImaginary!(idouble));
+    static assert(isBuiltInImaginary!(ireal));
+
+    static assert(isBuiltInComplex!(cfloat));
+    static assert(isBuiltInComplex!(cdouble));
+    static assert(isBuiltInComplex!(creal));
+}
+
+
 struct FuncAttr 
 {
   static:
