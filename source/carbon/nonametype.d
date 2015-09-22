@@ -117,8 +117,8 @@ if(is(C == class) || is(C == interface))
 
 unittest
 {
-    static class C { int foo() { return 1; } }
-    C d = new Override!(C, "int foo(){ return 2; }")();
+    static class C { this(){} int foo() { return 1; } }
+    C d = new Override!(C, "int foo(){ return 2; }");
     assert(d.foo() == 2);
 }
 
@@ -139,7 +139,7 @@ if(is(C == class) || is(C == interface))
 
 unittest
 {
-    static class C {}
+    static class C { this(){} }
     auto d = new Implement!(C, "int foo(){ return 2; }")();
     assert(d.foo() == 2);
 }

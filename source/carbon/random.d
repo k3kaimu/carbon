@@ -49,7 +49,7 @@ if(isInputRange!R)
     }
 
 
-    return Result(range)
+    return Result(range);
 }
 
 
