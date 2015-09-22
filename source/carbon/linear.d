@@ -3668,13 +3668,13 @@ if(rs >= 0 && cs >= 0)
     }
 
 
-    @property
-    auto stackRef() inout pure nothrow @safe
-    {
-        //Issue: 9983 http://d.puremagic.com/issues/show_bug.cgi?id=9983
-        //return matrix!(rows, cols)(_array[]);
-        return _referenceImpl(this);
-    }
+    //@property
+    //auto stackRef() inout pure nothrow @safe
+    //{
+    //    //Issue: 9983 http://d.puremagic.com/issues/show_bug.cgi?id=9983
+    //    //return matrix!(rows, cols)(_array[]);
+    //    return _referenceImpl(this);
+    //}
 
 
     //alias reference this;
@@ -3690,34 +3690,34 @@ if(rs >= 0 && cs >= 0)
     T[rs * cs] _buffer;
 
 
-    // Workaround of issue 9983 http://d.puremagic.com/issues/show_bug.cgi?id=9983
-    auto _referenceImpl(M)(ref M m) @trusted pure nothrow
-    {
-        static if(is(M == immutable(M)))
-            return _referenceImplImmutable(cast(immutable(T)[])m._array[]);
-        else static if(is(M == const(M)))
-            return _referenceImplConst(cast(const(T)[])m._array[]);
-        else
-            return _referenceImplMutable(cast(T[])m._array[]);
-    }
+    //// Workaround of issue 9983 http://d.puremagic.com/issues/show_bug.cgi?id=9983
+    //auto _referenceImpl(M)(ref M m) @trusted pure nothrow
+    //{
+    //    static if(is(M == immutable(M)))
+    //        return _referenceImplImmutable(cast(immutable(T)[])m._array[]);
+    //    else static if(is(M == const(M)))
+    //        return _referenceImplConst(cast(const(T)[])m._array[]);
+    //    else
+    //        return _referenceImplMutable(cast(T[])m._array[]);
+    //}
 
 
-    auto _referenceImplMutable(E)(E[] arr)
-    {
-        return arr.matrix!(rows, cols);
-    }
+    //auto _referenceImplMutable(E)(E[] arr)
+    //{
+    //    return arr.matrix!(rows, cols);
+    //}
 
 
-    auto _referenceImplConst(E)(const E[] arr)
-    {
-        return arr.matrix!(rows, cols);
-    }
+    //auto _referenceImplConst(E)(const E[] arr)
+    //{
+    //    return arr.matrix!(rows, cols);
+    //}
 
 
-    auto _referenceImplImmutable(E)(immutable E[] arr)
-    {
-        return arr.matrix!(rows, cols);
-    }
+    //auto _referenceImplImmutable(E)(immutable E[] arr)
+    //{
+    //    return arr.matrix!(rows, cols);
+    //}
 }
 
 unittest{
@@ -3730,7 +3730,7 @@ unittest{
     m[1, 0] = 1; m[1, 1] = 2; m[1, 2] = 3;
     m[2, 0] = 2; m[2, 1] = 3; m[2, 2] = 4;
 
-    auto mref = m.stackRef;
+    auto mref = m.pref;
 
     SMatrix!(int, 3, 3) m2 = mref * mref;
     mref = mref * mref;
@@ -3782,16 +3782,16 @@ unittest{
 
 
     SMatrix!(int, 2, 2) m;
-    auto rm = m.stackRef;
+    auto rm = m.pref;
 
-    assert(rm + rm == m + m);
-    assert(rm - rm == m - m);
-    assert(rm * rm == m * m);
+    assert(rm + rm == m.pref + m);
+    assert(rm - rm == m.pref - m);
+    assert(rm * rm == m.pref * m);
 
     m = [[1, 2], [2, 3]];
 
     SMatrix!(int, 2, 2) m2 = m;
-    m.noAlias = m2 + m2;
+    m.noAlias = m2.pref + m2;
     assert(m[0, 0] == 2);
 }
 
@@ -3880,12 +3880,12 @@ if(isNarrowMatrix!A)
         static if(hasStaticCols!A)
             enum size_t rows = A.cols;
         else
-            @property auto ref rows() inout { return _mat.cols; }
+            @property auto ref rows() const { return _mat.cols; }
 
         static if(hasStaticRows!A)
             enum size_t cols = A.rows;
         else
-            @property auto ref cols() inout { return _mat.rows; }
+            @property auto ref cols() const { return _mat.rows; }
       }
 
 
@@ -3938,32 +3938,33 @@ if(isNarrowMatrix!A)
         A _mat;
     }
 
+
     return Transposed!()(mat);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SMatrix!(int, 2, 2) m;
     m = [[0, 1],
          [2, 3]];
 
-    auto t = m.transpose;
+    auto t = m.pref.transpose;
     assert(t[0, 0] == 0);
     assert(t[0, 1] == 2);
     assert(t[1, 0] == 1);
     assert(t[1, 1] == 3);
 }
 unittest{
-    //scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
-    //scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
 
 
     SCVector!(int, 3) v;
     v[0] = 1; v[1] = 2; v[2] = 3;
 
-    auto t = v.transpose;
+    auto t = v.pref.transpose;
     t[0] = 1;
     t[1] = 2;
     t[2] = 3;
@@ -3973,7 +3974,7 @@ unittest{
     assert(t.cols == 3);
 
 
-    static assert(is(typeof(v) == typeof(t.transpose)));
+    static assert(is(typeof(v.pref) == typeof(t.transpose)));
 }
 
 /**
