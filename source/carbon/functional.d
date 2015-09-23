@@ -255,8 +255,6 @@ auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
 */
 auto ref passTo(alias f, T...)(auto ref T args)
 {
-    static if(is(typeof(f(args)) : void))
-        return digress!f(forward!args);
-    else
-        return call!f(forward!args);
+    f(forward!args);
+    return args[0]
 }
