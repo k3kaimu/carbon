@@ -150,6 +150,34 @@ unittest
 }
 
 
+
+/**
+*/
+struct UninitializedTemporaryBuffer(T)
+{
+    import core.stdc.stdlib;
+
+    @disable
+    this(this);
+
+
+    this(size_t n) @trusted
+    {
+        slice = uninitializedCHeapArray!T(n);
+    }
+
+
+    ~this() @trusted
+    {
+        destroyCHeapArray(slice);
+    }
+
+
+    T[] slice;
+    alias slice this;
+}
+
+
 /**
 Defines a reference-counted object containing a $(D T) value as
 payload. $(D RefCountedNoGC) keeps track of all references of an object,
