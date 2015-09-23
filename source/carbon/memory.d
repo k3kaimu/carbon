@@ -84,7 +84,7 @@ void destroyCHeapArray(E)(ref E[] arr) nothrow @nogc
         foreach(ref e; arr)
             callAllDtor(e);
 
-    static if(hasIndirections!T)
+    static if(hasIndirections!E)
         GC.removeRange(arr.ptr);
 
     assumeTrusted!(core.stdc.stdlib.free)(arr.ptr);
