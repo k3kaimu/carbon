@@ -256,5 +256,5 @@ auto ref assumeTrusted(alias fn, T...)(auto ref T args) @trusted
 auto ref passTo(alias f, T...)(auto ref T args)
 {
     f(forward!args);
-    return args[0]
+    return args[0];
 }
