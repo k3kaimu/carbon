@@ -1,15 +1,15 @@
 module carbon.event;
 
 import std.algorithm,
-       phobosx.signal,  //
-       std.variant;
+       std.variant,
+       std.traits,
+       std.signals;
 
-version(D_LP64) {}
-else:
+version(unittest) import std.stdio;
 
-public import phobosx.signal : RestrictedSignal;
+/**
 
-
+*/
 struct FiredContext
 {
     Variant sender;
@@ -20,33 +20,185 @@ struct FiredContext
 }
 
 
-struct EventManager(T...)
+/**
+
+*/
+interface StrongConnectedSlotTag {}
+
+
+private
+final class SignalImpl(T...)
 {
-    ref RestrictedSignal!(FiredContext, T) signalImpl() @property { return _signalImpl; }
-    private Signal!(FiredContext, T) _signalImpl;
-    alias signalImpl this;
+    void connect(string name, Class)(Class obj)
+    if(hasMember!(Class, name) && (is(Class == class) || is(Class == interface)))
+    {
+        MixedInSignal.connect(mixin(`&obj.` ~ name));
+    }
+
+
+    void disconnect(string name, Class)(Class obj)
+    if(hasMember!(Class, name) && (is(Class == class) || is(Class == interface)))
+    {
+        MixedInSignal.disconnect(mixin(`&obj.` ~ name));
+    }
+
+
+    SlotTag strongConnect(Callable)(Callable func)
+    if(is(typeof((T args) { func(args); })))
+    {
+        static final class SlotImpl : SlotTag
+        {
+            override
+            void dg(T args){ _f(args); }
+
+            override
+            bool opEquals(Object rhs)
+            {
+                if(auto o = cast(SlotImpl)rhs)
+                    return this._f == o._f;
+                else
+                    return false;
+            }
+
+          private:
+            Callable _f;
+        }
+
+        auto slot = new SlotImpl;
+        slot._f = func;
+
+        this.connect!"dg"(slot);
+        return slot;
+    }
+
+
+    void disconnect(ref SlotTag tag)
+    {
+        destroy(tag);
+        tag = null;
+    }
+
+
+    void strongDisconnect(ref SlotTag tag)
+    {
+        this.disconnect(tag);
+        tag = null;
+    }
+
+
+    void emitImpl(T args)
+    {
+        MixedInSignal.emit(args);
+    }
+
+
+  private
+  {
+    mixin Signal!(T) MixedInSignal;
+  }
+
+
+    interface SlotTag : StrongConnectedSlotTag
+    {
+        void dg(T);
+    }
+}
+
+
+
+/**
+
+*/
+final class EventManager(T...)
+{
+    this()
+    {
+        _noarg = new SignalImpl!();
+        _simple = new SignalImpl!T;
+        _withContext = new SignalImpl!(FiredContext, T);
+    }
+
 
     void disable()
     {
-        _disable = true;
+        _disabled = true;
     }
 
 
     void enable()
     {
-        _disable = false;
+        _disabled = false;
     }
 
 
-    void emit()(auto ref T args, string file = __FILE__, size_t line = __LINE__,
-                                     string func = __FUNCTION__, string preFunc = __PRETTY_FUNCTION__)
+    void connect(string name, Class)(Class obj)
+    if(hasMember!(Class, name) && (is(Class == class) || is(Class == interface)))
     {
-        emit(null, forward!args, file, line, func, preFunc);
+      static if(is(typeof((FiredContext ctx, T args){ mixin(`obj.` ~ name ~ `(ctx, args);`); })))
+        _withContext.connect!name(obj);
+      else static if(is(typeof((T args){ mixin(`obj.` ~ name ~ `(args);`); })))
+        _simple.connect!name(obj);
+      else
+        _noarg.connect!name(obj);
     }
 
 
-    void emit(S)(S sender, auto ref T args, string file = __FILE__, size_t line = __LINE__,
-                                     string func = __FUNCTION__, string preFunc = __PRETTY_FUNCTION__)
+    void disconnect(string name, Class)(Class obj)
+    if(hasMember!(Class, name) && (is(Class == class) || is(Class == interface)))
+    {
+      static if(is(typeof((FiredContext ctx, T args){ mixin(`obj.` ~ name ~ `(ctx, args);`); })))
+        _withContext.disconnect!name(obj);
+      else static if(is(typeof((T args){ mixin(`obj.` ~ name ~ `(args);`); })))
+        _simple.disconnect!name(obj);
+      else
+        _noarg.disconnect!name(obj);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(Callable)(Callable func)
+    {
+      static if(is(typeof((FiredContext ctx, T args){ func(ctx, args); })))
+        return _withContext.strongConnect(func);
+      else static if(is(typeof((T args){ func(args); })))
+        return _simple.strongConnect(func);
+      else
+        return _noarg.strongConnect(func);
+    }
+
+
+    void strongDisconnect(ref StrongConnectedSlotTag slotTag)
+    {
+        if(auto s1 = cast(_withContext.SlotTag)slotTag){
+            _withContext.strongDisconnect(s1);
+            slotTag = null;
+        }
+        else if(auto s2 = cast(_simple.SlotTag)slotTag){
+            _simple.strongDisconnect(s2);
+            slotTag = null;
+        }
+        else if(auto s3 = cast(_noarg.SlotTag)slotTag){
+            _noarg.strongDisconnect(s3);
+            slotTag = null;
+        }
+    }
+
+
+    void disconnect(ref StrongConnectedSlotTag slotTag)
+    {
+        this.strongDisconnect(slotTag);
+        slotTag = null;
+    }
+
+
+    void emit()(T args, string file = __FILE__, size_t line = __LINE__,
+                string func = __FUNCTION__, string preFunc = __PRETTY_FUNCTION__)
+    {
+        emit(null, args, file, line, func, preFunc);
+    }
+
+
+    void emit(S)(S sender, T args, string file = __FILE__, size_t line = __LINE__,
+                                 string func = __FUNCTION__, string preFunc = __PRETTY_FUNCTION__)
     {
         FiredContext ctx;
         ctx.sender = sender;
@@ -55,28 +207,38 @@ struct EventManager(T...)
         ctx.funcName = func;
         ctx.prettyFuncName = preFunc;
 
-        emit(ctx, forward!args);
+        emit(ctx, args);
     }
 
 
-  private:
-    void emit()(FiredContext ctx, auto ref T args)
+    void emit()(FiredContext ctx, T args)
     {
-        if(!_disable){
-            _signalImpl.emit(ctx, forward!args);
+        if(!_disabled){
+            _noarg.emit();
+            _simple.emit(args);
+            _withContext.emit(ctx, args);
         }
     }
 
 
-    bool _disable;
+  private:
+    bool _disabled;
+    SignalImpl!() _noarg;
+    SignalImpl!T _simple;
+    SignalImpl!(FiredContext, T) _withContext;
 }
 
+
+///
 unittest
 {
-    auto event = EventManager!bool();
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    auto event = new EventManager!bool();
 
     bool bCalled = false;
-    event.strongConnect(delegate(FiredContext ctx, bool b){
+    auto tag = event.strongConnect(delegate(FiredContext ctx, bool b){
         assert(b);
         assert(ctx.sender == null);
         bCalled = true;
@@ -89,12 +251,32 @@ unittest
     event.disable();
     event.emit(true);
     assert(!bCalled);
+
+    event.enable();
+    event.emit(true);
+    assert(bCalled);
+
+    bCalled = false;
+    event.disconnect(tag);
+    event.emit(true);
+    assert(!bCalled);
+    assert(tag is null);
 }
 
 
-struct SeqEventManager(size_t N, T...)
+/**
+
+*/
+class SeqEventManager(size_t N, T...)
 {
-    ref RestrictedSignal!(FiredContext, T) opIndex(size_t i)
+    this()
+    {
+        foreach(i; 0 .. N)
+            _signals[i] = new EventManager!T;
+    }
+
+
+    EventManager!T opIndex(size_t i)
     in{
         assert(i < N);
     }
@@ -136,7 +318,6 @@ struct SeqEventManager(size_t N, T...)
     }
 
 
-  private:
     void emit()(FiredContext ctx, auto ref T args)
     {
         if(!_disable){
@@ -147,13 +328,17 @@ struct SeqEventManager(size_t N, T...)
 
 
   private:
-    Signal!(FiredContext, T)[N] _signals;
+    EventManager!T[N] _signals;
     bool _disable;
 }
 
+///
 unittest
 {
-    SeqEventManager!(3, bool) event;
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    auto event = new SeqEventManager!(3, bool);
 
     size_t cnt;
     size_t[3] ns;
