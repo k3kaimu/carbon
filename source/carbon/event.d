@@ -160,6 +160,42 @@ final class EventManager(T...)
     }
 
 
+    StrongConnectedSlotTag strongConnect(void function() func)
+    {
+        return _noarg.strongConnect(func);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(void function(T) func)
+    {
+        return _simple.strongConnect(func);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(void function(FiredContext, T) func)
+    {
+        return _withContext.strongConnect(func);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(void delegate() func)
+    {
+        return _noarg.strongConnect(func);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(void delegate(T) func)
+    {
+        return _simple.strongConnect(func);
+    }
+
+
+    StrongConnectedSlotTag strongConnect(void delegate(FiredContext, T) func)
+    {
+        return _withContext.strongConnect(func);
+    }
+
+
     StrongConnectedSlotTag strongConnect(Callable)(Callable func)
     {
       static if(is(typeof((FiredContext ctx, T args){ func(ctx, args); })))
@@ -240,7 +276,7 @@ unittest
     auto event = new EventManager!int();
 
     int sum;
-    auto tag1 = event.strongConnect((int a){ sum += a; });
+    auto tag1 = event.strongConnect(delegate(a){ sum += a; });
 
     event.emit(12);
     assert(sum == 12);
@@ -372,23 +408,20 @@ unittest
 
     size_t cnt;
     size_t[3] ns;
-    event[0].strongConnect(delegate(FiredContext ctx, bool b){
+    event[0].strongConnect(delegate(b){
         assert(b);
-        assert(ctx.sender == null);
         ns[0] = cnt;
         ++cnt;
     });
 
-    event[1].strongConnect(delegate(FiredContext ctx, bool b){
+    event[1].strongConnect(delegate(b){
         assert(b);
-        assert(ctx.sender == null);
         ns[1] = cnt;
         ++cnt;
     });
 
-    event[2].strongConnect(delegate(FiredContext ctx, bool b){
+    event[2].strongConnect(delegate(b){
         assert(b);
-        assert(ctx.sender == null);
         ns[2] = cnt;
         ++cnt;
     });
