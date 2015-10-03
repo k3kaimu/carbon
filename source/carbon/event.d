@@ -66,6 +66,7 @@ final class SignalImpl(T...)
 
         auto slot = new SlotImpl;
         slot._f = func;
+        _slotSet[slot] = true;
 
         this.connect!"dg"(slot);
         return slot;
@@ -74,6 +75,7 @@ final class SignalImpl(T...)
 
     void disconnect(ref SlotTag tag)
     {
+        _slotSet.remove(tag);
         destroy(tag);
         tag = null;
     }
@@ -102,6 +104,9 @@ final class SignalImpl(T...)
     {
         void dg(T);
     }
+
+  private:
+    bool[SlotTag] _slotSet;
 }
 
 
@@ -230,6 +235,31 @@ final class EventManager(T...)
 
 
 ///
+unittest
+{
+    auto event = new EventManager!int();
+
+    int sum;
+    auto tag1 = event.strongConnect((int a){ sum += a; });
+
+    event.emit(12);
+    assert(sum == 12);
+
+    auto tag2 = event.strongConnect(() { sum += 2; });
+
+    event.emit(4);
+    assert(sum == 18);  // add 2 + 4
+
+    event.disconnect(tag1);
+    event.emit(12);
+    assert(sum == 20);  // only add 2
+
+    event.disconnect(tag2);
+    event.emit(5);
+    assert(sum == 20);
+}
+
+
 unittest
 {
     scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
