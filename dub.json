@@ -10,6 +10,7 @@
     "targetType": "library",
 
     "dependencies": {
-        "lock-free": ">=0.1.1"
+        "lock-free": "~>0.1.1",
+        "msgpack-d": "~>1.0.0-beta.2"
     }
 }
