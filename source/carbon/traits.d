@@ -270,33 +270,3 @@ enum bool isBRange(T) = isBidirectionalRange!T;
 enum bool isBRange(T, E) = isBidirectionalRange!T && is(ElementType!T : E);
 enum bool isRRange(T) = isRandomAccessRange!T;
 enum bool isRRange(T, E) = isRandomAccessRange!T && is(ElementType!T : E);
-
-
-
-/**
-idenがUser Defined Attributeであるattrを持っているかチェックします
-*/
-template hasUDA(alias iden, alias attr)
-{
-    template hasUDAImpl(UDAs...)
-    {
-      static if(UDAs.length == 0)
-        enum bool hasUDAImpl = false;
-      else static if(__traits(isSame, UDAs[0], attr))
-        enum bool hasUDAImpl = true;
-      else
-        enum bool hasUDAImpl = hasUDAImpl!(UDAs[1 .. $]);
-    }
-
-    enum bool hasUDA = hasUDAImpl!(__traits(getAttributes, iden));
-}
-
-///
-unittest
-{
-    enum Foo;
-    static struct Bar { void hoge()@Foo{} void fuga(){} }
-
-    static assert(hasUDA!(Bar.hoge, Foo));
-    static assert(!hasUDA!(Bar.fuga, Foo));
-}
