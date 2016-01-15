@@ -319,9 +319,11 @@ if(isPhoenixActor!A)
   {
     immutable Duration timeoutDur = obj.maxInterval;
 
-    while(!obj.isEnd)
+    while(1)
     {
         try{
+            if(obj.isEnd) break;
+
             mixin(`receiveTimeout(timeoutDur, ` ~ generateActorHandles!A() ~ `);`);
             obj.onUpdate();
         }
@@ -331,9 +333,13 @@ if(isPhoenixActor!A)
   }
   else
   {
-    while(!obj.isEnd)
+    while(1)
     {
-        try mixin(`receive(` ~ generateActorHandles!A() ~ `);`);
+        try{
+            if(obj.isEnd) break;
+
+            mixin(`receive(` ~ generateActorHandles!A() ~ `);`);
+        }
         catch(Error err) obj.onResurrection(err);
         catch(Exception err) obj.onResurrection(err);
     }
