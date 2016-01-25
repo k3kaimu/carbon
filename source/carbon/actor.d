@@ -1,6 +1,7 @@
 module carbon.actor;
 
 import core.thread;
+import core.atomic;
 
 import std.concurrency;
 import std.traits;
@@ -123,8 +124,11 @@ if(isActor!A)
 {
     mixin(generateMethods);
 
+    bool isDestroyed() const @property { return atomicLoad(*_isDestroyed); }
+
   private:
     Tid _tid;
+    shared(bool)* _isDestroyed;
 
   static:
     string generateMethods()
@@ -154,7 +158,8 @@ if(isActor!A)
 */
 ActorConnection!A runActor(A, Params...)(Params params)
 {
-    return ActorConnection!A(spawn(&(runActorImpl!(A, Params)), params));
+    shared(bool)* destroyedFlag = new shared bool;
+    return ActorConnection!A(spawn(&(runActorImpl!(A, Params)), destroyedFlag, params), destroyedFlag);
 }
 
 
@@ -208,9 +213,12 @@ unittest
 
 //
 private
-void runActorImpl(A, Params...)(Params params)
+void runActorImpl(A, Params...)(shared(bool)* destroyedFlag, Params params)
 if(isActor!A)
 {
+    scope(exit)
+        atomicStore(*destroyedFlag, true);
+
   static if(is(A == class))
     A obj = new A(params);
   else static if(is(A == struct))
@@ -234,6 +242,10 @@ if(isActor!A)
         mixin(`receive(` ~ generateActorHandles!A() ~ `);`);
     }
   }
+
+
+  static if(is(typeof((){ obj.onDestroy(); })))
+    obj.onDestroy();
 }
 
 
@@ -242,7 +254,8 @@ runActorと同様に，アクターAを別スレッドで起動しますが，A�
 */
 ActorConnection!A runPhoenixActor(A, Params...)(Params params)
 {
-    return ActorConnection!A(spawn(&(runPhoenixActorImpl!(A, Params)), params));
+    shared(bool)* destroyedFlag = new shared bool;
+    return ActorConnection!A(spawn(&(runPhoenixActorImpl!(A, Params)), destroyedFlag, params), destroyedFlag);
 }
 
 
@@ -306,9 +319,12 @@ unittest
 
 //
 private
-void runPhoenixActorImpl(A, Params...)(Params params)
+void runPhoenixActorImpl(A, Params...)(shared(bool)* destroyedFlag, Params params)
 if(isPhoenixActor!A)
 {
+    scope(exit)
+        atomicStore(*destroyedFlag, true);
+
   static if(is(A == class))
     A obj = new A(params);
   else static if(is(A == struct))
@@ -344,6 +360,9 @@ if(isPhoenixActor!A)
         catch(Exception err) obj.onResurrection(err);
     }
   }
+
+  static if(is(typeof((){ obj.onDestroy(); })))
+    obj.onDestroy();
 }
 
 
