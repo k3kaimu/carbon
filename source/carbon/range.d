@@ -33,6 +33,7 @@ module carbon.range;
 
 import std.algorithm,
        std.array,
+       std.functional,
        std.range,
        std.string,
        std.traits;
@@ -1679,8 +1680,6 @@ if(isInputRange!R)
     return TakeWhileResult!(_pred, arityN, typeof(segment!arityN(range)), T)(segment!arityN(range), args);
 }
 
-
-
 private struct TakeWhileResult(alias _pred, size_t arityN, SegR, T...)
 {
     @property
@@ -1728,7 +1727,6 @@ private struct TakeWhileResult(alias _pred, size_t arityN, SegR, T...)
     T _subArgs;
 }
 
-
 /// ditto
 unittest
 {
@@ -1753,4 +1751,130 @@ unittest
 
     auto tw5 = takeWhile!"false"(r1);
     assert(tw5.empty);
+}
+
+
+
+/**
+受け取ったレンジの要素をそれぞれ連続してn回繰り返すようなレンジを返します。
+*/
+auto resampling(R)(R range, size_t n)
+{
+    alias E = ElementType!R;
+
+    static struct SamplerResult
+    {
+        E front() @property { return _f; }
+
+
+        void popFront()
+        {
+            ++_cnt;
+            if(_cnt == _n){
+                if(!_r.empty){
+                    _f = _r.front;
+                    _r.popFront();
+                    _cnt = 0;
+                }
+            }
+        }
+
+
+        bool empty() const
+        {
+            return (_n == 0) || (_cnt == _n && _r.empty);
+        }
+
+
+      private:
+        size_t _cnt;
+        size_t _n;
+        R _r;
+        E _f;
+    }
+
+    if(range.empty)
+        return SamplerResult.init;
+
+    auto f = range.front;
+    range.popFront();
+
+    return SamplerResult(0, n, range, f);
+}
+
+///
+unittest
+{
+    debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    import std.stdio;
+    uint[] arr = [0, 1, 2];
+    //writeln(arr.resampling(3));
+    assert(arr.resampling(3).equal([0,0,0,1,1,1,2,2,2,]));
+
+    assert(arr.resampling(0).empty);
+
+    uint[] emp = [];
+    assert(emp.resampling(3).empty);
+}
+
+
+/**
+std.range.iotaを汎用的にしたものです．
+*/
+auto giota(alias add = "a + b", alias pred = "a == b", S, E, D)(S start, E end, D diff)
+if(is(typeof((S s, E e, D d){ s = binaryFun!add(s, d); if(binaryFun!pred(s, e)){} })))
+{
+    static struct Iota
+    {
+        inout(S) front() inout @property { return _value; }
+        bool empty() @property { return !!binaryFun!pred(_value, _end); }
+        void popFront() { _value = binaryFun!add(_value, _diff); }
+
+      private:
+        S _value;
+        E _end;
+        D _diff;
+    }
+
+
+    return Iota(start, end, diff);
+}
+
+
+/// ditt
+auto giotaInf(alias add = "a + b", S, D)(S start, D diff)
+if(is(typeof((S s, D d){ s = binaryFun!add(s, d); })))
+{
+    static struct IotaInf
+    {
+        inout(S) front() inout @property { return _value; }
+        enum bool empty = false;
+        void popFront() { _value = binaryFun!add(_value, _diff); }
+
+      private:
+        S _value;
+        D _diff;
+    }
+
+
+    return IotaInf(start, diff);
+}
+
+
+///
+unittest
+{
+    import std.datetime;
+    import core.time;
+
+    auto ds1 = giota(Date(2004, 1, 1), Date(2005, 1, 1), days(1));
+    assert(ds1.walkLength() == 366);
+
+
+    auto ds2 = giotaInf(Date(2004, 1, 1), days(2));
+    assert(ds2.front == Date(2004, 1, 1)); ds2.popFront();
+    assert(ds2.front == Date(2004, 1, 3)); ds2.popFront();
+    assert(ds2.front == Date(2004, 1, 5));
 }
