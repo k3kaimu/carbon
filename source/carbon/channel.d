@@ -61,7 +61,7 @@ shared struct Channel(T...)
     }
 
 
-    shared(Receiver) reciever() @property
+    shared(Receiver) receiver() @property
     {
         return shared(Receiver)(this);
     }
@@ -294,7 +294,7 @@ unittest{
     }
 
     spawn(&spawnFuncSender, ch1.sender);
-    spawn(&spawnFuncMiddle, ch1.reciever,
+    spawn(&spawnFuncMiddle, ch1.receiver,
                             ch2.sender);
 
     foreach(i; 0 .. 100){
