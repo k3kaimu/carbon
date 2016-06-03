@@ -1879,3 +1879,113 @@ unittest
     assert(ds2.front == Date(2004, 1, 3)); ds2.popFront();
     assert(ds2.front == Date(2004, 1, 5));
 }
+
+
+auto whenEmpty(alias func, R)(R range)
+if(isInputRange!R && isCallable!func)
+{
+    static struct ResultRangeOfWhenEmpty
+    {
+        auto ref front() { return _r.front; }
+
+      static if(isInfinite!R)
+        enum bool empty = false;
+      else
+      {
+        bool empty() @property { return _r.empty; }
+      }
+
+
+        void popFront()
+        {
+            _r.popFront();
+            if(_r.empty){
+                func();
+            }
+        }
+
+      private:
+        R _r;
+    }
+
+
+    ResultRangeOfWhenEmpty res;
+    res._r = range;
+    return res;
+}
+
+///
+unittest
+{
+    {
+        static auto arrA = [1, 2, 3];
+        auto r = arrA.whenEmpty!((){ arrA = null; });
+        assert(equal(r, arrA));
+        assert(arrA is null);
+    }
+    {
+        static auto arrB = [1, 2, 3];
+        auto r = arrB.whenEmpty!((){ arrB = null; });
+        //assert(equal(r, arr));
+        r.popFront(); r.popFront();
+        assert(arrB !is null);
+        r.popFront();
+        assert(arrB is null);
+    }
+}
+
+
+auto whenEmpty(R, Fn)(R range, Fn fn)
+if(isCallable!Fn)
+{
+    static struct ResultRangeOfWhenEmpty
+    {
+        auto ref front() { return _r.front; }
+
+      static if(isInfinite!R)
+        enum bool empty = false;
+      else
+      {
+        bool empty() @property { return _r.empty; }
+      }
+
+
+        void popFront()
+        {
+            _r.popFront();
+            if(_r.empty){
+                _fn();
+            }
+        }
+
+      private:
+        R _r;
+        Fn _fn;
+    }
+
+
+    ResultRangeOfWhenEmpty res;
+    res._r = range;
+    res._fn = fn;
+    return res;
+}
+
+///
+unittest
+{
+    {
+        auto arr = [1, 2, 3];
+        auto r = arr.whenEmpty((){ arr = null; });
+        assert(equal(r, arr));
+        assert(arr is null);
+    }
+    {
+        auto arr = [1, 2, 3];
+        auto r = arr.whenEmpty((){ arr = null; });
+        //assert(equal(r, arr));
+        r.popFront(); r.popFront();
+        assert(arr !is null);
+        r.popFront();
+        assert(arr is null);
+    }
+}
