@@ -36,7 +36,8 @@ import std.algorithm,
        std.functional,
        std.range,
        std.string,
-       std.traits;
+       std.traits,
+       std.typecons;
 
 debug import std.stdio;
 

@@ -42,6 +42,7 @@ import std.algorithm,
        std.range,
        std.string,
        std.traits,
+       std.typecons,
        std.typetuple;
 
 debug import std.stdio;
