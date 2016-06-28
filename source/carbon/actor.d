@@ -174,7 +174,7 @@ unittest
     {
         this() {}
 
-        int count;
+        private int count;
 
         void inc() { atomicOp!"+="(count, 1); }
         int value() { return count; }
@@ -270,7 +270,7 @@ unittest
     {
         this() {}
 
-        int count;
+        private int count;
 
         void inc() { atomicOp!"+="(count, 1); }
         int value() { return count; }

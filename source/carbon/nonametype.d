@@ -30,6 +30,7 @@ D. Above three clauses are applied both to source and binary
 module carbon.nonametype;
 
 
+
 auto refT(alias var)() @safe
 {
     static struct RefT

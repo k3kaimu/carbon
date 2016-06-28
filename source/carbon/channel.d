@@ -123,6 +123,7 @@ shared struct Channel(T...)
     }
 
 
+    /// return a queue managed this channel
     shared(AtomicDList!U) queue(U)() @property
     if(isOneOfT!(U, T))
     {
@@ -135,8 +136,23 @@ shared struct Channel(T...)
     }
 
 
+    ///// Wait until appending new element. This function is implemented by core.sync.Condition
+    //void waitNewElement()
+    //{
+    //    _cnd.wait();
+    //}
+
+
+    ///// if this channel is empty, wait until appending new element. This function is implemented by core.sync.Condtion
+    //void waitOneElement()
+    //{
+    //    if(_chs.empty) waitNewElement();
+    //}
+
+
   private:
     AtomicDLists _chs;
+    //Condition _cnd;
 
     alias AtomicDLists = ToTuple!(TRMap!(AtomicDList, ToTRange!T));
 

@@ -3986,6 +3986,8 @@ if(isNarrowMatrix!A)
 {
     static struct Hermitian()
     {
+      import std.complex;
+
       static if(isAbstractMatrix!A)
       {
         enum size_t rows = wild;
@@ -4481,8 +4483,6 @@ auto identity(E)()if(isNotVectorOrMatrix!E)
 {
     static struct Identity()
     {
-
-
         static InferredResult inferSize(Msize_t i, Msize_t j)
         {
             if(i < 0 && j < 0)
@@ -4504,6 +4504,7 @@ auto identity(E)()if(isNotVectorOrMatrix!E)
         mixin(defaultExprOps!(true));
     }
 
+    static assert(isAbstractMatrix!(Identity!()));
     return Identity!()();
 }
 unittest{
@@ -4550,8 +4551,6 @@ auto ones(E)()if(isNotVectorOrMatrix!E)
 {
     static struct Ones()
     {
-
-
         E opIndex(size_t i, size_t j) inout
         {
             return cast(E)1;
@@ -4560,10 +4559,12 @@ auto ones(E)()if(isNotVectorOrMatrix!E)
 
         static InferredResult inferSize(Msize_t i, Msize_t j)
         {
-            if(i == wild && j == wild)
+            if(i < 0 && j < 0)
                 return InferredResult(false);
-            else if(i == wild || j == wild)
+            else if(i < 0 || j < 0)
                 return InferredResult(true, max(i, j), max(i, j));
+            else if(i == j)
+                return InferredResult(true, i, j);
             else
                 return InferredResult(true, i, j);
         }

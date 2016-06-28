@@ -33,7 +33,8 @@ module carbon.stream;
 
 import carbon.math,
        carbon.functional,
-       carbon.nonametype;
+       carbon.nonametype,
+       carbon.simd;
 
 import std.algorithm,
        std.container,
@@ -42,7 +43,8 @@ import std.algorithm,
        std.math,
        std.range,
        std.stdio,
-       std.traits;
+       std.traits,
+       std.typecons;
 
 
 /**
@@ -77,7 +79,7 @@ if(isInputStream!S)
 {
     E[] rem = buf;
     while(rem.length && (!s.empty || !s.fetch()))
-        rem = s.read(rem);
+        rem = rem[s.read(rem).length .. $];
     
     return buf[0 .. $ - rem.length];
 }
@@ -206,7 +208,10 @@ if(isInputRange!R && !isInputStream!R)
             return () @trusted { return buf[0 .. cast(size_t)(p - buf.ptr)]; }();
         }
 
+
         T[] read(T)(T[] buf) { return readOp!""(buf); }
+
+        //mixin(defaultStreamSIMDOperator);
     }
 
 
@@ -249,6 +254,8 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
 
         Cpx[] read(Cpx)(Cpx[] buf){ return readOp!""(buf); }
 
+        //mixin(defaultStreamSIMDOperator);
+
       @property
       {
         real freq() const @property { return _freq; }
@@ -271,6 +278,9 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto sig1 = preciseComplexNCO(1000, 0.001, 0);
     static assert(isInputStream!(typeof(sig1)));
     static assert(isInplaceComputableStream!(typeof(sig1)));
@@ -290,6 +300,7 @@ unittest
 
     sig1.readOp!"a+b"(buf);
 }
+
 
 
 /**
@@ -330,6 +341,8 @@ if(isPowOf2(divN))
         LutNCO opSlice(size_t i, OpDollar) const { auto dst = this[]; dst._phase += i * _freq * _deltaT; return dst; }
         auto opSlice(size_t i, size_t j) const { return this[i .. $].take(j - i); }
 
+        real phase() const @property { return _phase; }
+        void phase(real p) @property { _phase = p; }
         real freq() const @property { return _freq; }
         void freq(real f) @property { _freq = f; }
         real deltaT() const @property { return _deltaT; }
@@ -352,8 +365,24 @@ if(isPowOf2(divN))
             return buf[0 .. $];
         }
 
+        auto readOp(alias op, E, size_t N)(SIMDArray!(E, N) buf)
+        if(is(typeof(binaryFunExt!op(buf[0], _table[0]))))
+        {
+            immutable dph = _freq * _deltaT * divN * N;
+            auto p = buf[].ptr;
+            const end = () @trusted { return p + buf.length; }();
+            while(p != end){
+                binaryFunExt!op(*p, table[cast(ptrdiff_t)(_phase) & (divN - 1)]);
+                _phase += dph;
+                () @trusted { ++p; }();
+            }
+
+            return buf;
+        }
 
         T[] read(T)(T[] buf) @safe { return readOp!""(buf); }
+
+        auto read(E, size_t N)(SIMDArray!(E, N) buf) { return readOp!""(buf); }
 
       private:
         real _phase;
@@ -362,9 +391,9 @@ if(isPowOf2(divN))
     }
 
 
-    LutNCO!() lutNCO(real freq, real deltaT, real theta = 0) pure nothrow @safe @nogc
+    auto lutNCO(real freq, real deltaT, real theta = 0) pure nothrow @safe @nogc
     {
-        return LutNCO!()(theta, freq, deltaT);
+        return .lutNCO(table, freq, deltaT, theta);
     }
 }
 
@@ -374,7 +403,7 @@ unittest{
     auto sig1 = lutNCO!(std.math.expi, 4)(1, 0.25, 0);
     static assert(isInputStream!(typeof(sig1)));
     static assert(isInplaceComputableStream!(typeof(sig1)));
-    static assert(is(ElementType!(typeof(sig1)) == creal));
+    static assert(is(ElementType!(typeof(sig1)) : creal));
 
     assert(equal!((a, b) => approxEqual(a.re, b.re) && approxEqual(a.im, b.im))
         (sig1[0 .. 1024], preciseComplexNCO(1, 0.25, 0)[0 .. 1024]));
@@ -383,6 +412,101 @@ unittest{
     auto buf = sig1[0 .. 1024].array;
     assert(sig1.readOp!"-"(buf).length == buf.length);
     assert(equal!"a == 0"(buf, buf));
+}
+
+
+/**
+*/
+auto lutNCO(R)(R range, real freq, real deltaT, real theta = 0) pure nothrow @safe @nogc
+if(isRandomAccessRange!R && hasLength!R)
+{
+    alias E = Unqual!(std.range.ElementType!R);
+
+    static struct LutNCO()
+    {
+        E front() @property { return _table[cast(ptrdiff_t)(_phase) % $]; }
+        void popFront() { _phase += _freq * _deltaT * _table.length; _phase %= _table.length; }
+        enum bool empty = false;
+        auto save() @property { return .lutNCO(_table.save, _freq, _deltaT, _phase); }
+        E opIndex(size_t i) { return _table[cast(ptrdiff_t)(_phase + i * _freq * _deltaT * $) % $]; }
+        struct OpDollar{} enum opDollar = OpDollar();
+        auto opSlice() { return .lutNCO(_table.save, _freq, _deltaT, _phase); }
+        auto opSlice(size_t i, OpDollar) { auto dst = this[]; dst._phase += i * _freq * _deltaT; return dst; }
+        auto opSlice(size_t i, size_t j) { return this[i .. $].take(j - i); }
+
+      static if(is(typeof((const R r, size_t i){auto e = r[i];})))
+      {
+        E front() const @property { return _table[cast(ptrdiff_t)(_phase) % $]; }
+        E opIndex(size_t i) const { return _table[cast(ptrdiff_t)(_phase + i * _freq * _deltaT * $) % $]; }
+      }
+
+      static if(is(typeof((const R r){r.save();})))
+      {
+        auto save() const @property { return .lutNCO(_table.save, _freq, _deltaT, _phase); }
+        auto opSlice() const { return .lutNCO(_table.save, _freq, _deltaT, _phase); }
+        auto opSlice(size_t i, OpDollar) const { auto dst = this[]; dst._phase += i * _freq * _deltaT; return dst; }
+        auto opSlice(size_t i, size_t j) const { return this[i .. $].take(j - i); }
+      }
+
+        real phase() const @property { return _phase; }
+        void phase(real p) @property { _phase = p; }
+        real freq() const @property { return _freq; }
+        void freq(real f) @property { _freq = f; }
+        real deltaT() const @property { return _deltaT; }
+        void deltaT(real t) @property { _deltaT = t; }
+
+        bool fetch() { return false; }
+
+        T[] readOp(alias op, T)(T[] buf)
+        if(is(typeof(binaryFunExt!op(buf[0], _table[0]))))
+        {
+            immutable dph = _freq * _deltaT * _table.length;
+            auto p = buf.ptr;
+            const end = () @trusted { return p + buf.length; }();
+            while(p != end){
+                binaryFunExt!op(*p, _table[cast(ptrdiff_t)(_phase) % $]);
+                _phase += dph;
+                () @trusted { ++p; }();
+            }
+
+            return buf[0 .. $];
+        }
+
+
+        auto readOp(alias op, E, size_t N)(SIMDArray!(E, N) buf)
+        if(is(typeof(binaryFunExt!op(buf[0], _table[0]))))
+        {
+            immutable divN = _table.length;
+
+            immutable dph = _freq * _deltaT * divN * N;
+            auto p = buf[].ptr;
+            const end = () @trusted { return p + buf.length; }();
+            while(p != end){
+                binaryFunExt!op(*p, _table[cast(ptrdiff_t)(_phase) % $]);
+                _phase += dph;
+                () @trusted { ++p; }();
+            }
+
+            return buf;
+        }
+
+
+        T[] read(T)(T[] buf) { return readOp!""(buf); }
+
+        auto read(E, size_t N)(SIMDArray!(E, N) buf) { return readOp!""(buf); }
+
+        //mixin(defaultStreamSIMDOperator);
+
+
+      private:
+        R _table;
+        real _phase;
+        real _freq;
+        real _deltaT;
+    }
+
+
+    return LutNCO!()(range, theta, freq, deltaT);
 }
 
 
@@ -436,6 +560,8 @@ body{
 
 
         U[] read(U)(U[] buf) { return readOp!""(buf); }
+
+        //mixin(defaultStreamSIMDOperator);
 
 
         const(E)[] availables() @property { return _arr[_pos .. $]; }
@@ -499,6 +625,8 @@ if(!is(E : T[], T))
             return readOp!""(buf);
         }
 
+        //mixin(defaultStreamSIMDOperator);
+
       private:
         E _e;
     }
@@ -536,7 +664,7 @@ unittest{
 
 
 /**
-一度に巨大なファイルを読み込むことに特化したバッファ持ち入力ストリームです。
+一度に巨大なファイルを読み込むことに特化した，バッファ持ち入力ストリームです。
 */
 auto rawFileStream(T)(string filename, size_t bufferSize = 1024 * 1024)
 if(is(Unqual!T == T))
@@ -556,6 +684,14 @@ if(is(Unqual!T == T))
             _buffer = _file.rawRead(_buffer);
             if(_buffer.length != beforeSize)
                 _file.detach();
+        }
+
+
+        this(File file, T[] buf)
+        {
+            _file = file;
+            _buffer = buf;
+            _pos = 0;
         }
 
 
@@ -603,8 +739,11 @@ if(is(Unqual!T == T))
 
         /// ditto
         E[] read(E)(E[] buf)
-        if(isAssignable!(E, T))
+        //if(isAssignable!(E, T))
         { return readOp!""(buf); }
+
+
+        //mixin(defaultStreamSIMDOperator);
 
 
         /**
@@ -643,7 +782,7 @@ if(is(Unqual!T == T))
     }
 
 
-    auto dst = RawFileStream!()(new T[bufferSize], 0,File(filename));
+    auto dst = RefCounted!(RawFileStream!())(File(filename), new T[bufferSize]);
     dst.refill();
     return dst;
 }
@@ -709,7 +848,14 @@ if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "*") && isInfinite!Sg2)
           }
         }
 
+
         E[] read(E)(E[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+
+        auto read(E, size_t N)(SIMDArray!(E, N) buf)
         {
             return readOp!""(buf);
         }
@@ -730,6 +876,21 @@ if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "*") && isInfinite!Sg2)
         }
 
 
+        auto readOp(alias op, E, size_t N)(SIMDArray!(E, N) buf)
+        if((op == "*" || op == "/")
+        && isInplaceComputableStream!(Sg1, op)
+        && isInplaceComputableStream!(Sg2, op))
+        {
+            return _sg2.readOp!op(_sg1.readOp!op(buf));
+        }
+
+
+        auto readOp(alias op : "", E, size_t N)(SIMDArray!(E, N) buf)
+        {
+            return _sg2.readOp!"*"(_sg1.read(buf));
+        }
+
+
       private:
         Sg1 _sg1;
         Sg2 _sg2;
@@ -743,6 +904,9 @@ if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "*") && isInfinite!Sg2)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr1 = [0, 1, 0, 1, 0, 1, 0, 1].repeatStream;
     auto arr2 = [0, 0, 1, 1, 0, 0, 1, 1].repeatStream;
     auto mx1 = arr1.mixer(arr2);
@@ -804,9 +968,21 @@ if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "+") && isInfinite!Sg2)
         }
 
 
+        auto readOp(alias op, E, size_t N)(SIMDArray!(E, N) buf)
+        {
+            return _sg2.readOp!op(_sg1.readOp!op(buf));
+        }
+
+
         E[] readOp(alias op : "", E)(E[] buf)
         {
             return _sg2.readOp!"+"(_sg1.read(buf));
+        }
+
+
+        auto readOp(alias op, E, size_t N)(SIMDArray!(E, N) buf)
+        {
+            return _sg2.readOp!"+"(_sg1.readOp(buf));
         }
 
 
@@ -823,6 +999,9 @@ if(isInputStream!Sg1 && isInplaceComputableStream!(Sg2, "+") && isInfinite!Sg2)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr1 = [0, 1, 0, 1, 0, 1, 0, 1].repeatStream;
     auto arr2 = [0, 0, 1, 1, 0, 0, 1, 1].repeatStream;
     auto mx1 = arr1.adder(arr2);
@@ -836,6 +1015,9 @@ unittest
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr1 = [0, 1, 0, 1, 0, 1, 0, 1].repeatStream;
     auto buf1 = arr1.adder(arr1).adder(arr1).read(new int[16]);
     auto buf2 = arr1.amplifier(3).read(new int[16]);
@@ -903,6 +1085,9 @@ auto accumulator(E)(size_t integN)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto acc = accumulator!int(4);
     static assert(isOutputStream!(typeof(acc), int));
 
@@ -994,7 +1179,16 @@ if(isInputStream!Sg && is(ElementType!Sg : E))
         }
 
 
+        auto readOp(alias func, E, size_t N)(SIMDArray!(E, N) buf)
+        {
+            auto b = readOp(buf.array);
+            return buf[0 .. b.length];
+        }
+
+
         T[] read(T)(T[] buf) { return readOp!""(buf); }
+
+        //mixin(defaultStreamSIMDOperator);
 
 
         const(E)[] availables() const @property { return _buffer[_pos .. _end]; }
@@ -1027,6 +1221,9 @@ if(isInputStream!Sg && is(ElementType!Sg : E))
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].repeatStream;
     auto acc = accumulator!4(arr1, new int[14]);
     static assert(isBufferedInputStream!(typeof(acc)));
@@ -1101,12 +1298,29 @@ auto amplifier(Sg, F)(Sg sg, F gain)
         }
 
 
+        auto readOp(string op, E, size_t N)(SIMDArray!(E, N) buf)
+        if((op == "*" || op == "/") && isInplaceComputableStream!(Sg, op, E))
+        {
+            buf = _sg.readOp!op(buf);
+            mixin("buf" ~ op ~ "= _gain;");
+
+            return buf;
+        }
+
+
         E[] read(E)(E[] buf)
         {
             buf = _sg.read(buf);
             buf[] *= _gain;
 
             return buf;
+        }
+
+
+        auto read(E, size_t N)(SIMDArray!(E, N) buf)
+        {
+            buf = _sg.read(buf);
+            buf *= _gain;
         }
 
 
@@ -1126,6 +1340,9 @@ auto amplifier(Sg, F)(Sg sg, F gain)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr4 = [0, 1, 2, 3].repeatStream,
          amped = arr4.amplifier(4);
 
@@ -1206,6 +1423,9 @@ auto selector(Sg...)(Sg sgs)
         }
 
 
+        //mixin(defaultStreamSIMDOperator);
+
+
         void select(size_t i)
         in{
             assert(i < Sg.length);
@@ -1234,6 +1454,9 @@ auto selector(Sg...)(Sg sgs)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr1 = 0.repeatStream,
          arr2 = [0, 1].repeatStream,
          arr3 = [0, 1, 2].repeatStream,
@@ -1344,6 +1567,9 @@ body{
         }
 
 
+        //mixin(defaultStreamSIMDOperator);
+
+
       private:
         Sg _sg;
         const(E)[] _tap;
@@ -1358,6 +1584,9 @@ body{
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr = [0, 1, 2, 3].repeatStream,
          flt1 = arr.firFilter([0, 1]);
 
@@ -1466,6 +1695,8 @@ if(isFloatingPoint!E)
             return buf;
         }
 
+        //mixin(defaultStreamSIMDOperator);
+
 
       private:
         Sg _sg;
@@ -1479,8 +1710,126 @@ if(isFloatingPoint!E)
 ///
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr = [0, 1, -2, 3].repeatStream,
          nlz = arr.normalizer(1.5);
 
     assert(equal!approxEqual(nlz.read(new float[8]), [0, 1.5, -1.5, 1.5, 0, 0.5, -1.0, 1.5]));
+}
+
+
+
+/**
+信号をマッピングします
+*/
+auto mapper(alias fn, Sg)(Sg sg, ElementType!Sg[] buf = null, size_t bufSize = 1024)
+if(isInputStream!Sg && is(typeof({sg.read(buf);})))
+{
+    if(buf is null)
+        buf.length = bufSize;
+
+    static struct Result
+    {
+        alias E = ElementType!Sg;
+
+        auto front() @property { return unaryFun!fn(_sg.front); }
+        bool empty() const @property { return _sg.empty; }
+        void popFront() { _sg.popFront(); }
+
+        bool fetch() { return _sg.fetch(); }
+
+        U[] readOp(alias op, U)(U[] outbuf)
+        {
+            if(_buf.length < outbuf.length)
+                _buf.length = outbuf.length;
+
+            auto ib = _buf[0 .. outbuf.length];
+            ib = _sg.read(ib);
+
+            auto p = ib.ptr,
+                 e = ib[$ .. $].ptr,
+                 q = outbuf.ptr;
+
+            while(p != e){
+                binaryFunExt!op(*q, unaryFun!fn(*p));
+                () @trusted { ++p; ++q; }();
+            }
+
+            return outbuf[0 .. ib.length];
+        }
+
+
+        U[] read(U)(U[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+        //mixin(defaultStreamSIMDOperator);
+
+
+      private:
+        Sg _sg;
+        E[] _buf;
+    }
+
+    return Result(sg, buf);
+}
+
+
+/**
+
+*/
+auto arrayMapper(Sg, E)(Sg sg, in E[] arr, size_t[] buf = null, size_t bufSize = 1024)
+if(isInputStream!Sg && is(ElementType!Sg : size_t))
+{
+    if(buf is null)
+        buf.length = bufSize;
+
+    static struct Result
+    {
+        auto front() @property { return _arr[_sg.front]; }
+        bool empty() const @property { return _sg.empty; }
+        void popFront() { _sg.popFront(); }
+
+        bool fetch() { return _sg.fetch(); }
+
+        U[] readOp(alias op, U)(U[] outbuf)
+        {
+            if(_buf.length < outbuf.length)
+                _buf.length = outbuf.length;
+
+            auto ib = _buf[0 .. outbuf.length];
+            ib = _sg.read(ib);
+
+            auto p = ib.ptr,
+                 e = ib[$ .. $].ptr,
+                 q = outbuf.ptr;
+
+            while(p != e){
+                binaryFunExt!op(*q, _arr[*p]);
+                () @trusted { ++p; ++q; }();
+            }
+
+            return outbuf[0 .. ib.length];
+        }
+
+
+        U[] read(U)(U[] buf)
+        {
+            return readOp!""(buf);
+        }
+
+
+        //mixin(defaultStreamSIMDOperator);
+
+
+      private:
+        Sg _sg;
+        const(E)[] _arr;
+        size_t[] _buf;
+    }
+
+    return Result(sg, arr, buf);
 }

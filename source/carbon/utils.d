@@ -3,6 +3,7 @@ module carbon.utils;
 import std.algorithm;
 import std.container;
 import std.traits;
+import std.stdio;
 
 
 string toLiteral(string str)
@@ -14,6 +15,9 @@ string toLiteral(string str)
 
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     assert("123".toLiteral == `"123"`);
     assert("12\"3".toLiteral == `"12\"3"`);
 }
@@ -42,6 +46,9 @@ if(isAssociativeArray!AA)
 
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     Cache!(int[string]) c;
     assert(c("foo", 1) == 1);
     assert(c("bar", 2) == 2);
@@ -82,6 +89,9 @@ auto maybeModified(K, V)(V[K] aa)
 
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto aa = ["a": 1, "b": 2, "c": 3];
 
     foreach(k, ref v; aa.maybeModified){
@@ -121,6 +131,9 @@ auto maybeModified(E)(E[] arr)
 
 unittest
 {
+    scope(failure) {writefln("Unittest failure :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+    scope(success) {writefln("Unittest success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
     auto arr = [1, 2, 3];
 
     foreach(v; arr.maybeModified){
@@ -131,3 +144,34 @@ unittest
     assert(arr == [1, 2, 3, 1, 2, 3]);
 }
 
+
+/*
+struct ShiftRegistor(E, bool isRingBuffer = true, bool containPointer = false)
+{
+
+
+
+  private:
+    static if(containPointer)
+        alias C = E*;
+    else
+        alias C = E;
+
+    C[] _buffer;
+}
+
+
+struct ShiftRegistor(E, size_t N, bool isRingBuffer = true, bool containPointer = false)
+{
+
+}
+
+
+struct ParallelShiftRegistor(E, size_t P, bool isRingBuffer = true, bool containPointer = false)
+{
+
+}
+
+
+struct ParallelShiftRegistor(E, size_t P, bool isRingBuffer = true, bool containPointer = false)
+*/

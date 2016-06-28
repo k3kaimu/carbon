@@ -124,6 +124,98 @@ unittest
     assert(approxEqual(check.im, res.im));
 }
 
+
+/**
+*/
+cfloat cpxDotProduct(FastComplexArray!(float, 4) a, FastComplexArray!(float, 4) b) pure nothrow @trusted @nogc
+{
+    Vector!(float[4]) pv = 0, qv = 0;
+    size_t len = a.length;
+    auto a_r_b = a.re.ptr,
+         a_r_e = a_r_b + len,
+         a_i_b = a.im.ptr,
+         a_i_e = a_i_b + len,
+         b_r_b = b.re.ptr,
+         b_r_e = b_r_b + len,
+         b_i_b = b.im.ptr,
+         b_i_e = b_i_b + len;
+
+    while(a_r_b != a_r_e){
+        pv += (*a_r_b * *b_r_b) - (*a_i_b * *b_i_b);
+        qv += (*a_i_b * *b_r_b) + (*a_r_b * *b_i_b);
+
+        ++a_r_b;
+        ++a_i_b;
+        ++b_r_b;
+        ++b_i_b;
+    }
+
+
+    Vector!(float[4]) ones;
+    ones.array = [1.0f, 1.0f, 1.0f, 1.0f];
+
+    pv = __simd(XMM.DPPS, pv, ones, 0b11111111);
+    qv = __simd(XMM.DPPS, qv, ones, 0b11111111);
+
+    return pv.array[0] + qv.array[0]*1i;
+}
+
+
+struct FastComplexArray(E = float, size_t N = 4)
+{
+    Vector!(E[N])[] re;
+    Vector!(E[N])[] im;
+
+
+    size_t length() const pure nothrow @safe @nogc @property
+    {
+        return re.length;
+    }
+
+
+    void opOpAssign(string op)(R r)
+    if(op == "+" || op == "-")
+    {
+        iterate!(`*a `~op~`= b;`)(re, r);
+    }
+
+
+    void opOpAssign(string op)(R r)
+    if(op == "*" || op == "/")
+    {
+        iterate!(`*a `~op~`= c; *b `~op~`= c;`)(re, im, r);
+    }
+
+
+    void opOpAssign(string op)(I r)
+    if(op == "+" || op == "-")
+    {
+        iterate!(`*a `~op~`= b;`)(im, r);
+    }
+
+
+    void opOpAssign(string op)(I r)
+    if(op == "*" || op == "/")
+    {
+        swap(re, im);
+        iterate!(`*a `~op~`= d; *b `~op~`= c;`)(re, im, r, -r);
+    }
+
+
+    void opOpAssign(string op)(C r)
+    if(op == "+" || op == "-")
+    {
+        iterate!(`*a `~op~`= c; *b `~op~`= d;`)(re, im, r.re, r.im);
+    }
+
+
+    void opOpAssign(string op)(C r)
+    if(op == "*")
+    {
+        iterate!(`auto _temp = *a * c - *b * d; *b = *a * d + *b * c; *a = _temp;`)(re, im, r.re, r.im);
+    }
+}
+
 /*
 import core.bitop;
 import std.traits;

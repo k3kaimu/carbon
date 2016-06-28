@@ -1396,6 +1396,111 @@ unittest
 
 
 /**
+Dynamic Array Segment
+*/
+template dsegment(Range)
+if(isInputRange!Range)
+{
+    alias E = Unqual!(ElementType!Range);
+
+
+    Segment dsegment(Range r, size_t n)
+    {
+        Segment dst;
+
+        dst._r = r;
+        dst._arr = new E[n];
+        dst._empty = false;
+
+        foreach(i; 0 .. n){
+            if(dst._r.empty){
+                dst._empty = true;
+                break;
+            }
+
+            dst._arr[i] = dst._r.front;
+            dst._r.popFront();
+        }
+
+        return dst;
+    }
+
+
+    struct Segment
+    {
+        E[] front() @property { return _arr; }
+        const(E)[] front() const @property { return _arr; }
+
+
+      static if(isInfinite!Range)
+        enum bool empty = false;
+      else
+      {
+        bool empty() const @property { return _empty; }
+      }
+
+
+        void popFront()
+        {
+            if(_r.empty){
+                _empty = true;
+                return;
+            }
+
+            foreach(i; 1 .. _arr.length)
+                _arr[i-1] = _arr[i];
+            
+            _arr[$-1] = _r.front;
+            _r.popFront();
+        }
+
+
+      static if(isForwardRange!Range)
+      {
+        typeof(this) save() @property
+        {
+            typeof(this) dst;
+
+            dst._r = this._r.save;
+            dst._arr = this._arr.dup;
+            dst._empty = this._empty;
+
+            return dst;
+        }
+      }
+
+
+      private:
+        Range _r;
+        E[] _arr;
+        bool _empty;
+    }
+}
+
+unittest
+{
+    //debug scope(failure) writefln("unittest Failure :%s(%s)", __FILE__, __LINE__);
+    debug scope(success) {writefln("Unittest Success :%s(%s)", __FILE__, __LINE__); stdout.flush();}
+
+    static struct TRange
+    {
+        int _front, _end;
+        @property int front(){return _front;}
+        void popFront(){_front += 1;}
+        @property bool empty(){return _front == _end;}
+        @property TRange save(){return this;}
+        @property size_t length(){return _end - _front;}
+        alias length opDollar;
+    }
+
+    auto tr = TRange(0, 5);
+    auto sg2 = dsegment(tr, 2);
+    import std.stdio;
+    assert(equal(sg2, [[0, 1], [1, 2], [2, 3], [3, 4]]));
+}
+
+
+/**
 concats elements
 */
 auto concat(R)(R range) if (isRangeOfRanges!R)
