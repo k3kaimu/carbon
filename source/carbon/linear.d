@@ -32,6 +32,7 @@ module carbon.linear;
 import std.algorithm,
        std.array,
        std.ascii,
+       std.complex,
        std.conv,
        std.exception,
        std.format,
@@ -3986,8 +3987,6 @@ if(isNarrowMatrix!A)
 {
     static struct Hermitian()
     {
-      import std.complex;
-
       static if(isAbstractMatrix!A)
       {
         enum size_t rows = wild;
