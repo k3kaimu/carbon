@@ -395,6 +395,13 @@ struct complex_t(T)
     }
 
 
+    string toString() const @property
+    {
+        import std.complex;
+        return Complex!T(re, im).toString();
+    }
+
+
     static immutable complex_t zero = complex_t(0, 0);
     static immutable complex_t one = complex_t(1, 0);
 }
