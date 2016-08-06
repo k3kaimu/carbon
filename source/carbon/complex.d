@@ -29,17 +29,45 @@ import std.traits;
 import std.format;
 
 
+/**
+
+*/
+template std_complex_t(F)
+{
+  static if(is(F == float))
+    alias std_complex_t = cfloat;
+  else static if(is(F == double))
+    alias std_complex_t = cdouble;
+  else static if(is(F == real))
+    alias std_complex_t = creal;
+}
+
+
+///
 enum bool isComplex(T) = !isIntegral!T && !isFloatingPoint!T && is(typeof((T t){
     auto r = t.re;
     typeof(r) i = t.im;
 }));
 
+
+enum bool isComplex(T, F) = isComplex!T && is(typeof(T.init.re) == F) && is(typeof(T.init.im) == F);
+
+
+///
 unittest
 {
     import std.complex;
     static assert(isComplex!(Complex!float));
     static assert(isComplex!cfloat);
     static assert(!isComplex!float);
+
+    static assert(isComplex!(Complex!float, float));
+    static assert(isComplex!(cfloat, float));
+    static assert(!isComplex!(float, float));
+
+    static assert(!isComplex!(Complex!double, float));
+    static assert(!isComplex!(cdouble, float));
+    static assert(!isComplex!(double, float));
 }
 
 
