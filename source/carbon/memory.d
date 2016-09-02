@@ -15,6 +15,30 @@ import std.traits;
 import std.typecons;
 
 
+void fastPODCopy(R1, R2)(R1 src, R2 dst)
+if(isInputRange!R1 && isInputRange!R2 && hasAssignableElements!R2)
+{
+    alias E1 = ElementType!R1;
+    alias E2 = ElementType!R2;
+
+  static if(isArray!R1 && is(Unqual!R1 == Unqual!R2))
+  {
+    dst[] = src[];
+  }
+  else static if(isArray!R1 && isArray!R2 && E1.sizeof == E2.sizeof)
+  {
+    auto ub1 = cast(ubyte[])src;
+    auto ub2 = cast(ubyte[])dst;
+    ub2[] = ub1[];
+  }
+  else
+  {
+    import std.algorithm : copy;
+    copy(src, dst);
+  }
+}
+
+
 void callAllPostblit(T)(ref T obj)
 if(is(T == struct))
 {

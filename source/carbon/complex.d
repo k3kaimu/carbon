@@ -476,6 +476,21 @@ struct complex_t(T)
 }
 
 
+@safe pure nothrow unittest
+{
+    complex_t!float c1;
+    c1 = 1;
+    assert(c1 == 1);
+    c1 = 1i;
+    assert(c1 == 1i);
+    c1 = 1+1i;
+    assert(c1 == 1+1i);
+    c1 = 10+10i;
+    assert(c1.re == 10);
+    assert(c1.im == 10);
+}
+
+
 // from std.complex.d
 @safe pure nothrow
 unittest

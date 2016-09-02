@@ -155,23 +155,6 @@ shared struct Channel(T...)
     //Condition _cnd;
 
     alias AtomicDLists = ToTuple!(TRMap!(AtomicDList, ToTRange!T));
-
-    template isOneOfT(A, T...)
-    {
-      static if(T.length == 0)
-        enum bool isOneOfT = false;
-      else
-        enum bool isOneOfT = is(A == T[0]) || isOneOfT!(A, T[1 .. $]);
-    }
-
-
-    template CastOffShared(T)
-    {
-      static if(is(T == shared(U), U))
-        alias CastOffShared = U;
-      else
-        alias CastOffShared = T;
-    }
 }
 
 
@@ -326,4 +309,32 @@ unittest{
             assert(*ch2.pop!E == i.to!string);
         }
     }
+}
+
+unittest{
+    import std.variant;
+
+    alias Msg = Algebraic!(int, string);
+    alias Ch = shared(Channel!Msg);
+
+    auto ch = Ch();
+}
+
+
+private:
+template isOneOfT(A, T...)
+{
+  static if(T.length == 0)
+    enum bool isOneOfT = false;
+  else
+    enum bool isOneOfT = is(A == T[0]) || isOneOfT!(A, T[1 .. $]);
+}
+
+
+template CastOffShared(T)
+{
+  static if(is(T == shared(U), U))
+    alias CastOffShared = U;
+  else
+    alias CastOffShared = T;
 }
