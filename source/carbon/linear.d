@@ -3041,6 +3041,19 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
     enum major = mjr;
 
 
+  private
+  {
+    static if(rs == 1 || cs == 1)
+    {
+      T[] _array;
+    }
+    else
+    {
+      T[][] _array;
+    }
+  }
+
+
     this(M)(auto ref M m)
     if(!is(M == typeof(this)))
     {
@@ -3310,14 +3323,6 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
 
 
   private:
-  static if(rs == 1 || cs == 1)
-  {
-    T[] _array;
-  }
-  else
-  {
-    T[][] _array;
-  }
 
   static:
     T[] _buffer;
