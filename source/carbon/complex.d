@@ -97,24 +97,66 @@ unittest
 }
 
 
-complex_t!R cpx(R)(R re)
+/**
+
+*/
+Cpx!R cpx(alias Cpx = complex_t, R)(R re)
 if(!isComplex!R)
 {
+  static if(__traits(isSame, Cpx, std_complex_t))
+    return cast(typeof(return))re;
+  else
     return typeof(return)(re, 0);
 }
 
 
-complex_t!(CommonType!(R, I)) cpx(R, I)(R re, I im)
+/// ditto
+Cpx!(CommonType!(R, I)) cpx(alias Cpx = complex_t, R, I)(R re, I im)
 if(!isComplex!R && !isComplex!I)
 {
+  static if(__traits(isSame, Cpx, std_complex_t))
+    return cast(typeof(return))(re + im*1.0Li);
+  else
     return typeof(return)(re, im);
 }
 
 
-complex_t!(typeof(C.init.re)) cpx(C)(C c)
+/// ditto
+Cpx!(typeof(C.init.re)) cpx(alias Cpx = complex_t, C)(C c)
 if(isComplex!C)
 {
+  static if(__traits(isSame, Cpx, std_complex_t))
+    return cast(typeof(return))(c.re + c.im*1.0i);
+  else
     return typeof(return)(c.re, c.im);
+}
+
+///
+unittest
+{
+    complex_t!float c1 = cpx(1.0f);
+    assert(c1.re == 1);
+    assert(c1.im == 0);
+
+    complex_t!float c2 = cpx(1.0f, 1.0f);
+    assert(c2.re == 1);
+    assert(c2.im == 1);
+
+    complex_t!float c3 = cpx(1.0f + 1.0fi);
+    assert(c2.re == 1);
+    assert(c2.im == 1);
+
+    cfloat c4 = cpx!std_complex_t(1.0f);
+    assert(c4.re == 1);
+    assert(c4.im == 0);
+
+    cfloat c5 = cpx!std_complex_t(1.0f, 1.0f);
+    assert(c5.re == 1);
+    assert(c5.im == 1);
+
+    cfloat c6 = cpx!std_complex_t(1.0f + 1.0fi);
+    assert(c6.re == 1);
+    assert(c6.im == 1);
 }
 
 
