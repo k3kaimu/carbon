@@ -71,16 +71,6 @@ if(!is(T == struct))
 {}
 
 
-
-// copy from core.exception
-extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @nogc @trusted pure nothrow /* dmd @@@BUG11461@@@ */
-{
-    // NOTE: Since an out of memory condition exists, no allocation must occur
-    //       while generating this object.
-    throw cast(OutOfMemoryError) cast(void*) typeid(OutOfMemoryError).init;
-}
-
-
 private
 E[] uninitializedCHeapArray(E)(size_t n) @trusted nothrow
 {
