@@ -43,13 +43,39 @@ template std_complex_t(F)
 }
 
 
+/**
+
+*/
+template complexTypeTemplate(C)
+{
+  static if(is(C : creal))
+    alias complexTypeTemplate = std_complex_t;
+  else static if(is(C : CPX!F, alias CPX, F))
+    alias complexTypeTemplate = CPX;
+  else
+    static assert(0);
+}
+
 ///
+unittest
+{
+    import std.complex;
+
+    static assert(__traits(isSame, complexTypeTemplate!(Complex!float), Complex));
+    static assert(__traits(isSame, complexTypeTemplate!cfloat, std_complex_t));
+}
+
+
+/**
+
+*/
 enum bool isComplex(T) = !isIntegral!T && !isFloatingPoint!T && is(typeof((T t){
     auto r = t.re;
     typeof(r) i = t.im;
 }));
 
 
+/// ditto
 enum bool isComplex(T, F) = isComplex!T && is(typeof(T.init.re) == F) && is(typeof(T.init.im) == F);
 
 
