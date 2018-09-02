@@ -388,6 +388,189 @@ C complexZero(C)() @property
 }
 
 
+
+enum real eulersGamma = 0.57721566490153286060651L;
+
+
+real sinc(real x)
+{
+    if(abs(x) < 1E-2){
+        // From pade approximation of sin(x)
+        // See also: https://en.wikipedia.org/wiki/Pad%C3%A9_approximant
+
+        immutable real[3] numCoefs = [
+            +1.0L,
+            -2363 / 18183.0L,
+            +12671 / 4363920.0L,
+        ];
+
+        immutable real[4] denCoefs = [
+            +1.0L,
+            +445 / 12122.0L,
+            +601 / 872784.0L,
+            +121 / 16662240.0L
+        ];
+
+        immutable x2 = x^^2;
+        return poly(x2, numCoefs) / poly(x2, denCoefs);
+    }
+
+    return sin(x)/x;
+}
+
+
+/**
+See also: https://en.wikipedia.org/wiki/Trigonometric_integral
+*/
+real triIntSi(real x)
+{
+    if(x < 0){
+        return triIntSi(-x)*-1;
+    }
+
+    if(x <= 4){
+        immutable real[8] numCoefs = [
+            +1,
+            -4.54393409816329991e-2L,
+            +1.15457225751016682e-3L,
+            -1.41018536821330254e-5L,
+            +9.43280809438713025e-8L,
+            -3.53201978997168357e-10L,
+            +7.08240282274875911e-13L,
+            -6.05338212010422477e-16L
+        ];
+
+        immutable real[7] denCoefs = [
+            +1,
+            +1.01162145739225565e-2L,
+            +4.99175116169755106e-5L,
+            +1.55654986308745614e-7L,
+            +3.28067571055789734e-10L,
+            +4.5049097575386581e-13L,
+            +3.21107051193712168e-16L,
+        ];
+
+        immutable real x2 = x^^2;
+
+        return x * (poly(x2, numCoefs) / poly(x2, denCoefs));
+    }else{
+        // For x > 4,
+        immutable fg = fgForTriIntSiCiLargeX(x);
+
+        return PI_2 - fg[0] * cos(x) - fg[1] * sin(x);
+    }
+}
+
+
+///
+real triIntCi(real x)
+{
+    if(x < 0){
+        return triIntCi(-x);
+    }
+
+
+    if(x <= 4){
+        immutable real[7] numCoefs = [
+            -0.25L,
+            +7.51851524438898291e-3L,
+            -1.27528342240267686e-4L,
+            +1.05297363846239184e-6L,
+            -4.68889508144848019e-9L,
+            +1.06480802891189243e-11L,
+            -9.93728488857585407e-15L,
+        ];
+
+        immutable real[8] denCoefs = [
+            +1,
+            +1.1592605689110735e-2L,
+            +6.72126800814254432e-5L,
+            +2.55533277086129636e-7L,
+            +6.97071295760958946e-10L,
+            +1.38536352772778619e-12L,
+            +1.89106054713059759e-15L,
+            +1.39759616731376855e-18L,
+        ];
+
+        immutable real x2 = x^^2;
+
+        return eulersGamma + log(x) + x2 * (poly(x2, numCoefs) / poly(x2, denCoefs));
+    }else{
+        // For x > 4:
+
+        immutable fg = fgForTriIntSiCiLargeX(x);
+        return fg[0] * sin(x) - fg[1] * cos(x);
+    }
+}
+
+
+private
+real[2] fgForTriIntSiCiLargeX(real x)
+{
+    immutable real xm1 = 1/x;
+    immutable real xm2 = xm1^^2;
+
+    immutable real[11] numFCoefs = [
+        +1,
+        +7.44437068161936700618e2L,
+        +1.96396372895146869801e5L,
+        +2.37750310125431834034e7L,
+        +1.43073403821274636888e9L,
+        +4.33736238870432522765e10L,
+        +6.40533830574022022911e11L,
+        +4.20968180571076940208e12L,
+        +1.00795182980368574617e13L,
+        +4.94816688199951963482e12L,
+        -4.94701168645415959931e11L,
+    ];
+
+    immutable real[10] denFCoefs = [
+        +1,
+        +7.46437068161927678031e2L,
+        +1.97865247031583951450e5L,
+        +2.41535670165126845144e7L,
+        +1.47478952192985464958e9L,
+        +4.58595115847765779830e10L,
+        +7.08501308149515401563e11L,
+        +5.06084464593475076774e12L,
+        +1.43468549171581016479e13L,
+        +1.11535493509914254097e13L
+    ];
+
+    immutable real[11] numGCoefs = [
+        +1,
+        +8.1359520115168615e2L,
+        +2.35239181626478200e5L,
+        +3.12557570795778731e7L,
+        +2.06297595146763354e9L,
+        +6.83052205423625007e10L,
+        +1.09049528450362786e12L,
+        +7.57664583257834349e12L,
+        +1.81004487464664575e13L,
+        +6.43291613143049485e12L,
+        -1.36517137670871689e12L,
+    ];
+
+    immutable real[10] denGCoefs = [
+        +1,
+        +8.19595201151451564e2L,
+        +2.40036752835578777e5L,
+        +3.26026661647090822e7L,
+        +2.23355543278099360e9L,
+        +7.87465017341829930e10L,
+        +1.39866710696414565e12L,
+        +1.17164723371736605e13L,
+        +4.01839087307656620e13L,
+        +3.99653257887490811e13L,
+    ];
+
+    return [
+        xm1 * poly(xm2, numFCoefs) / poly(xm2, denFCoefs),
+        xm2 * poly(xm2, numGCoefs) / poly(xm2, denGCoefs)
+    ];
+}
+
+
 /*
 struct Integrator(T)
 {
