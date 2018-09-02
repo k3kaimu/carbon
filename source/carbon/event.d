@@ -3,7 +3,8 @@ module carbon.event;
 import std.algorithm,
        std.variant,
        std.traits,
-       std.signals;
+       std.signals,
+       std.functional;
 
 version(unittest) import std.stdio;
 
