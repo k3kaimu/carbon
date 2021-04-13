@@ -32,7 +32,7 @@ body{
 
     V ones;
     ones.array = [1.0f, 1.0f, 1.0f, 1.0f];
-    sum = __simd(XMM.DPPS, sum, ones, 0b11111111);
+    sum = cast(V)__simd(XMM.DPPS, sum, ones, 0b11111111);
     return sum.array[0];
 }
 
@@ -83,7 +83,7 @@ body{
                           h = *ph;
         r += x * h;
 
-        x = __simd(XMM.SHUFPS, x, x, 0b10_11_00_01);
+        x = cast(Vector!(float[4]))__simd(XMM.SHUFPS, x, x, 0b10_11_00_01);
 
         q += x * h;
 
@@ -95,8 +95,8 @@ body{
     sign.array = [1.0f, -1.0f, 1.0f, -1.0f];
     ones.array = [1.0f, 1.0f, 1.0f, 1.0f];
 
-    r = __simd(XMM.DPPS, r, sign, 0b11111111);
-    q = __simd(XMM.DPPS, q, ones, 0b11111111);
+    r = cast(Vector!(float[4]))__simd(XMM.DPPS, r, sign, 0b11111111);
+    q = cast(Vector!(float[4]))__simd(XMM.DPPS, q, ones, 0b11111111);
 
     return r.array[0] + q.array[0]*1i;
 }
@@ -154,8 +154,8 @@ cfloat cpxDotProduct(FastComplexArray!(float, 4) a, FastComplexArray!(float, 4) 
     Vector!(float[4]) ones;
     ones.array = [1.0f, 1.0f, 1.0f, 1.0f];
 
-    pv = __simd(XMM.DPPS, pv, ones, 0b11111111);
-    qv = __simd(XMM.DPPS, qv, ones, 0b11111111);
+    pv = cast(Vector!(float[4]))__simd(XMM.DPPS, pv, ones, 0b11111111);
+    qv = cast(Vector!(float[4]))__simd(XMM.DPPS, qv, ones, 0b11111111);
 
     return pv.array[0] + qv.array[0]*1i;
 }
