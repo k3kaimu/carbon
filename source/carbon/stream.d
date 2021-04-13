@@ -37,6 +37,7 @@ import carbon.math,
        carbon.simd;
 
 import std.algorithm,
+       std.complex,
        std.container,
        std.file,
        std.functional,
@@ -226,11 +227,11 @@ auto preciseComplexNCO(real freq, real deltaT, real theta = 0) pure nothrow @saf
 {
     static struct PreciseComplexNCO()
     {
-        creal front() const @property { return this[0]; }
+        Complex!real front() const @property { return this[0]; }
         void popFront() { _theta += _dt2PI * _freq; }
         enum bool empty = false;
         PreciseComplexNCO!() save() const @property { return this; }
-        creal opIndex(size_t i) const @property { return std.math.expi(_theta + i * _dt2PI * _freq); }
+        Complex!real opIndex(size_t i) const @property { return std.complex.expi(_theta + i * _dt2PI * _freq); }
         struct OpDollar{} enum OpDollar opDollar = OpDollar();
         PreciseComplexNCO!() opSlice() const { return this; }
         PreciseComplexNCO!() opSlice(size_t i, OpDollar) const { PreciseComplexNCO!() dst = this; dst._theta += i * _dt2PI * _freq; return dst; }
