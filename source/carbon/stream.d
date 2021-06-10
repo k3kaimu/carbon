@@ -287,11 +287,11 @@ unittest
     static assert(isInplaceComputableStream!(typeof(sig1)));
     static assert(is(ElementType!(typeof(sig1)) == creal));
 
-    assert(equal!((a, b) => approxEqual(a.re, b.re) && approxEqual(a.im, b.im))
+    assert(equal!((a, b) => isClose(a.re, b.re) && isClose(a.im, b.im))
                 (sig1[0 .. 4], cast(creal[])[1, 1, 1, 1]));
 
     sig1 = preciseComplexNCO(1, 0.25, 0);
-    assert(equal!((a, b) => approxEqual(a.re, b.re) && approxEqual(a.im, b.im))
+    assert(equal!((a, b) => isClose(a.re, b.re) && isClose(a.im, b.im))
                 (sig1[0 .. 4], cast(creal[])[1, 0+1i, -1, -1i]));
 
     sig1 = preciseComplexNCO(1000, 10.0L^^-6, std.math.E);
@@ -406,7 +406,7 @@ unittest{
     static assert(isInplaceComputableStream!(typeof(sig1)));
     static assert(is(ElementType!(typeof(sig1)) : creal));
 
-    assert(equal!((a, b) => approxEqual(a.re, b.re) && approxEqual(a.im, b.im))
+    assert(equal!((a, b) => isClose(a.re, b.re) && isClose(a.im, b.im))
         (sig1[0 .. 1024], preciseComplexNCO(1, 0.25, 0)[0 .. 1024]));
 
     sig1 = lutNCO!(std.math.expi, 4)(1000, 10.0L^^-6, std.math.E);
@@ -518,7 +518,7 @@ auto repeatStream(E)(const E[] array)
 in{
     assert(array.length);
 }
-body{
+do{
     static struct RepeatStream()
     {
         const(E) front() const @property { return _arr[_pos]; }
@@ -1431,7 +1431,7 @@ auto selector(Sg...)(Sg sgs)
         in{
             assert(i < Sg.length);
         }
-        body{
+        do{
             _selectIndex = i;
         }
 
@@ -1495,7 +1495,7 @@ if(isInputStream!Sg && is(E == Unqual!E))
 in{
     assert(tap.length == buf.length);
 }
-body{
+do{
     static struct FIRFiltered()
     {
         E front() const @property @trusted
@@ -1717,7 +1717,7 @@ unittest
     auto arr = [0, 1, -2, 3].repeatStream,
          nlz = arr.normalizer(1.5);
 
-    assert(equal!approxEqual(nlz.read(new float[8]), [0, 1.5, -1.5, 1.5, 0, 0.5, -1.0, 1.5]));
+    assert(equal!isClose(nlz.read(new float[8]), [0, 1.5, -1.5, 1.5, 0, 0.5, -1.0, 1.5]));
 }
 
 

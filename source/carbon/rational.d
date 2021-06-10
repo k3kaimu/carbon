@@ -380,7 +380,7 @@ if(isLikeInt!T && !isFloatingPoint!T)
     in{
         assert(u != 0);
     }
-    body{
+    do{
         _den = u;
         reduce();
     }
@@ -550,7 +550,7 @@ if(isLikeInt!T && !isFloatingPoint!T)
         static if(op == "/")
             assert(r._num != 0);
     }
-    body{
+    do{
         static if(op == "+"){
             auto gcd1 = gcd(_den, r._den);
             _num = _num * (r._den / gcd1) + r._num * (_den / gcd1);
@@ -597,7 +597,7 @@ if(isLikeInt!T && !isFloatingPoint!T)
         static if(op == "^^")
             assert(!(v < 0 && _num == 0));
     }
-    body{
+    do{
         static if(op == "+"){
             _num += _den * v;
         }else static if(op == "-"){

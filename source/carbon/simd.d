@@ -13,7 +13,7 @@ float dotProduct(in Vector!(float[4])[] a, in Vector!(float[4])[] b) pure nothro
 in{
     assert(a.length == b.length);
 }
-body{
+do{
     alias V = Vector!(float[4]);
 
     V sum;
@@ -54,7 +54,7 @@ unittest
         check += i * (i+1);
     }
 
-    assert(approxEqual(check, dotProduct(a, b)));
+    assert(isClose(check, dotProduct(a, b)));
 }
 
 
@@ -68,7 +68,7 @@ cfloat cpxDotProduct(in Vector!(float[4])[] a, in Vector!(float[4])[] b) pure no
 in{
     assert(a.length == b.length);
 }
-body{
+do{
     Vector!(float[4]) r, q;
     r = 0;
     q = 0;
@@ -120,8 +120,8 @@ unittest
     }
 
     cfloat res = cpxDotProduct(a, b);
-    assert(approxEqual(check.re, res.re));
-    assert(approxEqual(check.im, res.im));
+    assert(isClose(check.re, res.re));
+    assert(isClose(check.im, res.im));
 }
 
 
@@ -270,7 +270,7 @@ if(N > 0)
     in{
         assert(i == 0);
     }
-    body {
+    do {
         return typeof(return)(this._arr, j);
     }
 
@@ -280,7 +280,7 @@ if(N > 0)
     in {
         assert(this.length == rhs.length);
     }
-    body {
+    do {
         mixin(`_arr[] ` ~ op ~ "= rhs._arr[];");
     }
 
@@ -296,7 +296,7 @@ if(N > 0)
     in {
         assert(i < _size);
     }
-    body {
+    do {
         enum size_t mask = (1 << N_log2) -1;
 
         return _arr[i >> N_log2].array[i & mask];
@@ -308,7 +308,7 @@ if(N > 0)
     in {
         assert(this.length == lhs.length && this.length == rhs.length);
     }
-    body {
+    do {
         V* plhs = () @trusted { return lhs._arr.ptr; }(),
            prhs = () @trusted { return rhs._arr.ptr; }();
 
@@ -324,7 +324,7 @@ if(N > 0)
     in {
         assert(this.length == arr.length);
     }
-    body {
+    do {
         V* parr = () @trusted { return arr._arr.ptr; }();
 
         foreach(i, ref e; _arr){
@@ -339,7 +339,7 @@ if(N > 0)
     in {
 
     }
-    body {
+    do {
         foreach(ref e; _arr)
             e = fn(values);
     }

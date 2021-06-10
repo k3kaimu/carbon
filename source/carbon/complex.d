@@ -520,9 +520,9 @@ struct complex_t(T)
     assert (cpx(0.0).sqAbs == 0.0);
     assert (cpx(1.0).sqAbs == 1.0);
     assert (cpx(0.0, 1.0).sqAbs == 1.0);
-    assert (approxEqual(cpx(1.0L, -2.0L).sqAbs, 5.0L));
-    assert (approxEqual(cpx(-3.0L, 1.0L).sqAbs, 10.0L));
-    assert (approxEqual(cpx(1.0f,-1.0f).sqAbs, 2.0f));
+    assert (isClose(cpx(1.0L, -2.0L).sqAbs, 5.0L));
+    assert (isClose(cpx(-3.0L, 1.0L).sqAbs, 10.0L));
+    assert (isClose(cpx(1.0f,-1.0f).sqAbs, 2.0f));
 }
 
 
@@ -588,16 +588,16 @@ unittest
     assert (cmc.im == c1.im - c2.im);
 
     auto ctc = c1 * c2;
-    assert (approxEqual(ctc.abs, c1.abs*c2.abs, EPS));
-    assert (approxEqual(ctc.arg, c1.arg+c2.arg, EPS));
+    assert (isClose(ctc.abs, c1.abs*c2.abs, EPS));
+    assert (isClose(ctc.arg, c1.arg+c2.arg, EPS));
 
     auto cdc = c1 / c2;
-    assert (approxEqual(cdc.abs, c1.abs/c2.abs, EPS));
-    assert (approxEqual(cdc.arg, c1.arg-c2.arg, EPS));
+    assert (isClose(cdc.abs, c1.abs/c2.abs, EPS));
+    assert (isClose(cdc.arg, c1.arg-c2.arg, EPS));
 
     auto cec = c1^^c2;
-    assert (approxEqual(cec.re, 0.11524131979943839881, EPS));
-    assert (approxEqual(cec.im, 0.21870790452746026696, EPS));
+    assert (isClose(cec.re, 0.11524131979943839881, EPS));
+    assert (isClose(cec.im, 0.21870790452746026696, EPS));
 
     // Check complex-real operations.
     double a = 123.456;
@@ -615,12 +615,12 @@ unittest
     assert (ctr.im == c1.im*a);
 
     auto cdr = c1 / a;
-    assert (approxEqual(cdr.abs, c1.abs/a, EPS));
-    assert (approxEqual(cdr.arg, c1.arg, EPS));
+    assert (isClose(cdr.abs, c1.abs/a, EPS));
+    assert (isClose(cdr.arg, c1.arg, EPS));
 
     auto cer = c1^^3.0;
-    assert (approxEqual(cer.abs, c1.abs^^3, EPS));
-    assert (approxEqual(cer.arg, c1.arg*3, EPS));
+    assert (isClose(cer.abs, c1.abs^^3, EPS));
+    assert (isClose(cer.arg, c1.arg*3, EPS));
 
     auto rpc = a + c1;
     assert (rpc == cpr);
@@ -633,12 +633,12 @@ unittest
     assert (rtc == ctr);
 
     auto rdc = a / c1;
-    assert (approxEqual(rdc.abs, a/c1.abs, EPS));
-    assert (approxEqual(rdc.arg, -c1.arg, EPS));
+    assert (isClose(rdc.abs, a/c1.abs, EPS));
+    assert (isClose(rdc.arg, -c1.arg, EPS));
 
     rdc = a / c2;
-    assert (approxEqual(rdc.abs, a/c2.abs, EPS));
-    assert (approxEqual(rdc.arg, -c2.arg, EPS));
+    assert (isClose(rdc.abs, a/c2.abs, EPS));
+    assert (isClose(rdc.arg, -c2.arg, EPS));
 
     auto rec1a = 1.0 ^^ c1;
     assert(rec1a.re == 1.0);
@@ -649,26 +649,26 @@ unittest
     assert(rec2a.im == 0.0);
 
     auto rec1b = (-1.0) ^^ c1;
-    assert(approxEqual(rec1b.abs, std.math.exp(-PI * c1.im), EPS));
+    assert(isClose(rec1b.abs, std.math.exp(-PI * c1.im), EPS));
     auto arg1b = rec1b.arg;
     /* The argument _should_ be PI, but floating-point rounding error
      * means that in fact the imaginary part is very slightly negative.
      */
-    assert(approxEqual(arg1b, PI, EPS) || approxEqual(arg1b, -PI, EPS));
+    assert(isClose(arg1b, PI, EPS) || isClose(arg1b, -PI, EPS));
 
     auto rec2b = (-1.0) ^^ c2;
-    assert(approxEqual(rec2b.abs, std.math.exp(-2 * PI), EPS));
-    assert(approxEqual(rec2b.arg, PI_2, EPS));
+    assert(isClose(rec2b.abs, std.math.exp(-2 * PI), EPS));
+    assert(isClose(rec2b.arg, PI_2, EPS));
 
     auto rec3a = 0.79 ^^ complex(6.8, 5.7);
     auto rec3b = complex(0.79, 0.0) ^^ complex(6.8, 5.7);
-    assert(approxEqual(rec3a.re, rec3b.re, EPS));
-    assert(approxEqual(rec3a.im, rec3b.im, EPS));
+    assert(isClose(rec3a.re, rec3b.re, EPS));
+    assert(isClose(rec3a.im, rec3b.im, EPS));
 
     auto rec4a = (-0.79) ^^ complex(6.8, 5.7);
     auto rec4b = complex(-0.79, 0.0) ^^ complex(6.8, 5.7);
-    assert(approxEqual(rec4a.re, rec4b.re, EPS));
-    assert(approxEqual(rec4a.im, rec4b.im, EPS));
+    assert(isClose(rec4a.re, rec4b.re, EPS));
+    assert(isClose(rec4a.im, rec4b.im, EPS));
 
     auto rer = a ^^ complex(2.0, 0.0);
     auto rcheck = a ^^ 2.0;
@@ -681,13 +681,13 @@ unittest
     rcheck = (-a) ^^ 2.0;
     assert(feqrel(rer2.re, rcheck) == double.mant_dig);
     assert(isIdentical(rer2.re, rcheck));
-    assert(approxEqual(rer2.im, 0.0, EPS));
+    assert(isClose(rer2.im, 0.0, EPS));
 
     auto rer3 = (-a) ^^ complex(-2.0, 0.0);
     rcheck = (-a) ^^ (-2.0);
     assert(feqrel(rer3.re, rcheck) == double.mant_dig);
     assert(isIdentical(rer3.re, rcheck));
-    assert(approxEqual(rer3.im, 0.0, EPS));
+    assert(isClose(rer3.im, 0.0, EPS));
 
     auto rer4 = a ^^ complex(-2.0, 0.0);
     rcheck = a ^^ (-2.0);
@@ -699,10 +699,10 @@ unittest
     foreach (i; 0..20)
     {
         auto cei = c1^^i;
-        assert (approxEqual(cei.abs, c1.abs^^i, EPS));
+        assert (isClose(cei.abs, c1.abs^^i, EPS));
         // Use cos() here to deal with arguments that go outside
         // the (-pi,pi] interval (only an issue for i>3).
-        assert (approxEqual(std.math.cos(cei.arg), std.math.cos(c1.arg*i), EPS));
+        assert (isClose(std.math.cos(cei.arg), std.math.cos(c1.arg*i), EPS));
     }
 
     // Check operations between different complex types.
@@ -719,22 +719,22 @@ unittest
     auto c2c = c2;
 
     c1c /= c1;
-    assert(approxEqual(c1c.re, 1.0, EPS));
-    assert(approxEqual(c1c.im, 0.0, EPS));
+    assert(isClose(c1c.re, 1.0, EPS));
+    assert(isClose(c1c.im, 0.0, EPS));
 
     c1c = c1;
     c1c /= c2;
-    assert(approxEqual(c1c.re, 0.588235, EPS));
-    assert(approxEqual(c1c.im, -0.352941, EPS));
+    assert(isClose(c1c.re, 0.588235, EPS));
+    assert(isClose(c1c.im, -0.352941, EPS));
 
     c2c /= c1;
-    assert(approxEqual(c2c.re, 1.25, EPS));
-    assert(approxEqual(c2c.im, 0.75, EPS));
+    assert(isClose(c2c.re, 1.25, EPS));
+    assert(isClose(c2c.im, 0.75, EPS));
 
     c2c = c2;
     c2c /= c2;
-    assert(approxEqual(c2c.re, 1.0, EPS));
-    assert(approxEqual(c2c.im, 0.0, EPS));
+    assert(isClose(c2c.re, 1.0, EPS));
+    assert(isClose(c2c.im, 0.0, EPS));
 }
 
 // from std.complex.d

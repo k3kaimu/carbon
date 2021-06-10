@@ -319,7 +319,7 @@ in{
   else
     assert(i == 0);
 }
-body{
+do{
     return r[i+j];
 }
 
@@ -332,7 +332,7 @@ in{
   else
     assert(i == 0);
 }
-body{
+do{
     r[i+j] = e;
 }
 
@@ -815,7 +815,7 @@ if(isVector!V && !isNarrowVector!V)
         in{
             assert(i < length);
         }
-        body{
+        do{
             return _v[i];
         }
 
@@ -825,7 +825,7 @@ if(isVector!V && !isNarrowVector!V)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _v[i+j];
         }
 
@@ -1666,7 +1666,7 @@ if(isValidOperator!(Lhs, s, Rhs)
         assert(i < this.rows);
         assert(j < this.cols);
     }
-    body{
+    do{
       static if(etoSpec == ETOSpec.matrixAddMatrix)
         return this.lhs.at(i, j) + this.rhs.at(i, j);
       else static if(etoSpec == ETOSpec.matrixSubMatrix)
@@ -1741,7 +1741,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.cols);
         }
-        body{
+        do{
             return this[0, i];
         }
 
@@ -1752,7 +1752,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.cols);
         }
-        body{
+        do{
             return this[0, i] = value;
         }
 
@@ -1762,7 +1762,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.cols);
         }
-        body{
+        do{
             return mixin("this[0, i] " ~ op ~ "= value");
         }
       }
@@ -1777,7 +1777,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.rows);
         }
-        body{
+        do{
             return this[i, 0];
         }
 
@@ -1788,7 +1788,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.rows);
         }
-        body{
+        do{
             return this[0, i] = value;
         }
 
@@ -1798,7 +1798,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
         in{
             assert(i < this.rows);
         }
-        body{
+        do{
             return mixin("this[i, 0] " ~ op ~ "= value");
         }
       }
@@ -1907,7 +1907,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
                 assert(m.cols == this.cols);
             }
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), "=", M));
 
             foreach(i; 0 .. this.rows)
@@ -1932,7 +1932,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
                 assert(mat.cols == this.cols);
             }
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"+"(this, mat);
         }
@@ -1954,7 +1954,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
                 assert(mat.cols == this.cols);
             }
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"-"(this, mat);
         }
@@ -1973,7 +1973,7 @@ template ExpressionOperators(size_t spec, size_t rs, size_t cs)
             else
                 assert(mat.rows == this.cols);
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"*"(this, mat);
         }
@@ -2248,7 +2248,7 @@ template ExpressionOperatorsInferable(size_t spec)
             static if(!isAbstractMatrix!Rhs)
                 assert(this.inferSize(mat.rows, mat.cols).isValid);
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"+"(this, mat);
         }
@@ -2265,7 +2265,7 @@ template ExpressionOperatorsInferable(size_t spec)
             static if(!isAbstractMatrix!Rhs)
                 assert(this.inferSize(mat.rows, mat.cols).isValid);
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"-"(this, mat);
         }
@@ -2282,7 +2282,7 @@ template ExpressionOperatorsInferable(size_t spec)
             static if(!isAbstractMatrix!Rhs)
                 assert(this.inferSize(wild, mat.rows).isValid);
         }
-        body{
+        do{
             static assert(isValidOperator!(typeof(this), op, Rhs));
             return matrixExpression!"*"(this, mat);
         }
@@ -2693,7 +2693,7 @@ if(isAbstractMatrix!A && A.inferSize(rs, cs).isValid)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _mat[i, j];
         }
 
@@ -2705,7 +2705,7 @@ if(isAbstractMatrix!A && A.inferSize(rs, cs).isValid)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             _mat[i, j] = e;
         }
       }
@@ -2767,7 +2767,7 @@ if(isAbstractMatrix!A)
 in{
     assert(A.inferSize(r, c).isValid);
 }
-body{
+do{
     static struct Result()
     {
         @property size_t rows() const { return _rs; }
@@ -2778,7 +2778,7 @@ body{
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _mat[i, j];
         }
 
@@ -2790,7 +2790,7 @@ body{
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             _mat[i, j] = e;
         }
       }
@@ -2864,7 +2864,7 @@ in{
     assert(mat.rows == rs);
     assert(mat.cols == cs);
 }
-body{
+do{
     static struct Result()
     {
         enum rows = rs;
@@ -2876,7 +2876,7 @@ body{
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _mat[i, j];
         }
 
@@ -2888,7 +2888,7 @@ body{
               assert(i < rows);
               assert(j < cols);
           }
-          body{
+          do{
               _mat[i, j] = e;
           }
         }
@@ -2959,7 +2959,7 @@ if(is(typeof(f(0, 0))) && S.length == ((rs == 0) + (cs == 0)) && (S.length == 0 
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return f(i, j);
         }
 
@@ -3145,7 +3145,7 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
         assert(i < rows);
         assert(j < cols);
     }
-    body{
+    do{
       static if(rs == 1 || cs == 1)
         return _array[i+j];
       else static if(isRowMajor)
@@ -3171,7 +3171,7 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
       static if(isAbstractMatrix!M)
         assert(mat.inferSize(this.rows, this.cols).isValid);
     }
-    body
+    do
     {
       static if(isAbstractMatrix!M)
       {
@@ -3268,7 +3268,7 @@ struct DMatrix(T, Msize_t rs = dynamic, Msize_t cs = dynamic, Major mjr = Major.
       static if(cs != dynamic)
         assert(this.cols == mat.cols);
     }
-    body{
+    do{
       static if(is(typeof(this) == M))
         this = mat;
       else
@@ -3414,7 +3414,7 @@ in{
     assert(!(arr.length % r + c));
   }
 }
-body{
+do{
     static if(r == 1 || c == 1)
     {
       typeof(return) dst;
@@ -3487,7 +3487,7 @@ in{
   else
     assert(0);
 }
-body{
+do{
     immutable rs = r == 0 ? arr.length / c : r;
     immutable cs = c == 0 ? arr.length / r : c;
 
@@ -3585,7 +3585,7 @@ if(isAbstractMatrix!A)
 in{
   assert(A.inferSize(r, c).isValid);
 }
-body{
+do{
   return mat.congeal(r, c).matrix();
 }
 
@@ -3621,7 +3621,7 @@ if(rs >= 0 && cs >= 0)
         assert(i < rows);
         assert(j < cols);
     }
-    body{
+    do{
         static if(major == Major.row)
             return _array[i * cols + j];
         else
@@ -3900,7 +3900,7 @@ if(isNarrowMatrix!A)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _mat[j, i];
         }
 
@@ -3912,7 +3912,7 @@ if(isNarrowMatrix!A)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             _mat[j, i] = e;
         }
 
@@ -3922,7 +3922,7 @@ if(isNarrowMatrix!A)
             in{
                 assert(i < this.length);
             }
-            body{
+            do{
                 static if(is(typeof({static assert(rows == 1);})))
                     this[0 , i] = e;
                 else
@@ -4021,7 +4021,7 @@ if(isNarrowMatrix!A)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _mat[j, i].conj;
         }
 
@@ -4165,7 +4165,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
         auto ref opIndex(size_t i) inout
         in{
             assert(_f + i < _b);
-        }body{
+        }do{
             i += _f;
             return _mat[i / _mat.cols, i % _mat.cols];
         }
@@ -4191,7 +4191,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
             in{
                 assert(_f + i < _b);
             }
-            body{
+            do{
                 i += _f;
                 _mat[i / _mat.cols, i % _mat.cols] = v;
             }
@@ -4308,7 +4308,7 @@ if(isRandomAccessRange!R && isNotVectorOrMatrix!(Unqual!(std.range.ElementType!R
           static if(hasLength!R && mjr == Major.column)
             assert(j * rows + i < this._range.length);
         }
-        body{
+        do{
           static if(mjr == Major.row)
             return this._range[i * cols + j];
           else
@@ -4417,7 +4417,7 @@ if(isRandomAccessRange!R && isRandomAccessRange!(Unqual!(std.range.ElementType!R
           static if(hasLength!(Unqual!(std.range.ElementType!R)))
             assert((mjr == Major.row ? j : i) < _range[i].length);
         }
-        body{
+        do{
           static if(mjr == Major.row)
             return _range[i][j];
           else
@@ -4610,7 +4610,7 @@ in{
     static if(hasDynamicColumns!A)
         assert(cArray.find!"a>=b"(mat.cols).empty);
 }
-body{
+do{
   static if(rArray.length == 0 && cArray.length == 0)
     return mat;
   else
@@ -4633,7 +4633,7 @@ body{
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
           static if(rArray.length && cArray.length)
             return _mat[rArray[i], cArray[j]];
           else static if(rArray.length)
@@ -4710,7 +4710,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
                 in{
                     assert((i+j) < (rows+cols-1));
                 }
-                body{
+                do{
                     immutable size_t s = swizzleType(exp) == 'a' ? exp[i] - 'a' : (exp[i] == 'w' ? 3 : (exp[i] - 'x'));
 
                   static if(cols == 1)
@@ -4731,7 +4731,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
                     assert(i < rows);
                     assert(j < cols);
                 }
-                body{
+                do{
                     immutable size_t r = mixin(_swizzleExpSpec.rb) + i,
                                      c = mixin(_swizzleExpSpec.cb) + j;
 
@@ -4993,7 +4993,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
                     assert(i < rows);
                     assert(j < cols);
                 }
-                body{
+                do{
                     return _m[i, _idx];
                 }
 
@@ -5073,7 +5073,7 @@ if(isNarrowMatrix!A && !isAbstractMatrix!A)
                     assert(i < rows);
                     assert(j < cols);
                 }
-                body{
+                do{
                     return _m[_idx, j];
                 }
 
@@ -5158,7 +5158,7 @@ in{
         assert(vec1.length == vec2.length);
     }
 }
-body{
+do{
     alias Unqual!(typeof(ElementType!V1.init * ElementType!V2.init)) T;
     T sum = cast(T)0;
 
@@ -5187,7 +5187,7 @@ unittest{
     assert(cv.dot(cv) == 14);
 
 
-    assert(approxEqual((rv.pref * 0.5).dot(rv), 2.5));
+    assert(isClose((rv.pref * 0.5).dot(rv), 2.5));
 }
 
 
@@ -5201,7 +5201,7 @@ in{
     assert(vec1.length == 3);
     assert(vec2.length == 3);
 }
-body{
+do{
     static struct CrossResult
     {
         enum rows = mjr == Major.row ? 1 : 3;
@@ -5213,7 +5213,7 @@ body{
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             switch(i + j){
               case 0: return _v1[1] * _v2[2] - _v1[2] * _v2[1];
               case 1: return _v1[2] * _v2[0] - _v1[0] * _v2[2];
@@ -5272,7 +5272,7 @@ if(isVector!V1 && isVector!V2)
             assert(i < rows);
             assert(j < cols);
         }
-        body{
+        do{
             return _vec1[i] * _vec2[j];
         }
 
@@ -5314,7 +5314,7 @@ in{
   static if(size != wild)
     assert(pos.length == size);
 }
-body{
+do{
     static struct Permutation
     {
       static if(size != wild)
@@ -5433,7 +5433,7 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M)
                 assert(i < rows);
                 assert(j < cols);
             }
-            body{
+            do{
                 if(i == j)
                     return cast(typeof(return))1;
                 else if(i < j)
@@ -5475,7 +5475,7 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M)
                 assert(i < rows);
                 assert(j < cols);
             }
-            body{
+            do{
                 if(i > j)
                     return cast(typeof(return))0;
                 else
@@ -5503,7 +5503,7 @@ if(isNarrowMatrix!M && !isAbstractMatrix!M)
     in{
         assert(b.length == rows);
     }
-    body{
+    do{
         /*
         Ax = bの両辺にPをかけることにより
         PAx = Pbとなるが、LU分解によりPA = LUであるから、
@@ -5573,7 +5573,7 @@ if(isNarrowMatrix!A && hasLvalueElements!A && (!hasStaticRows!A || !hasStaticCol
 in{
     assert(m.rows == m.cols);
 }
-body{
+do{
     immutable size = m.rows;
     scope vv = new real[size];
     bool isEvenP;
@@ -5654,9 +5654,9 @@ unittest{
     SMatrix!(real, 3, 3) result = plu.p.inverse * plu.l * plu.u;
 
     foreach(i; 0 .. 3) foreach(j; 0 .. 3)
-        assert(approxEqual(result[i, j], org[i, j]));   // A = P^(-1)LU
+        assert(isClose(result[i, j], org[i, j]));   // A = P^(-1)LU
 
-    assert(approxEqual(plu.det, 0));
+    assert(isClose(plu.det, 0));
 }
 
 unittest{
@@ -5673,7 +5673,7 @@ unittest{
 
     plu.solveInPlace(v);
     foreach(i; 0 .. 3)
-        assert(approxEqual(v[i], 1));
+        assert(isClose(v[i], 1));
 }
 
 unittest{
@@ -5689,7 +5689,7 @@ unittest{
     
     foreach(i; 0 .. 3)
         foreach(j; 0 .. 3)
-            assert(approxEqual(iden[i, j], identity!real[i, j]));
+            assert(isClose(iden[i, j], identity!real[i, j]));
 }
 
 

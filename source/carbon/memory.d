@@ -903,7 +903,7 @@ struct RefCountedArray(E)
     in{
         assert(i < this.length);
     }
-    body{
+    do{
         return _impl._array[_s + i];
     }
 
@@ -970,7 +970,7 @@ struct RefCountedArray(E)
         assert(j <= len);
         assert(i <= j);
     }
-    body{
+    do{
         auto dst = this;
         dst._s += i;
         dst._e = dst._s + (j - i);

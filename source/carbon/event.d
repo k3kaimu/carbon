@@ -347,7 +347,7 @@ class SeqEventManager(size_t N, T...)
     in{
         assert(i < N);
     }
-    body{
+    do{
         return _signals[i];
     }
 

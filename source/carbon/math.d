@@ -79,7 +79,7 @@ if(isIntegral!T)
 in{
     assert(num >= 1);
 }
-body{
+do{
     static size_t castToSize_t(X)(X value)
     {
       static if(is(X : size_t))
@@ -105,7 +105,7 @@ if(isFloatingPoint!F)
 in{
     assert(num >= 1);
 }
-body{
+do{
     int n = void;
     frexp(num, n);
     return (cast(F)2.0) ^^ (n + next - 1);

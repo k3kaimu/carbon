@@ -99,7 +99,7 @@ if(is(Quaternion!E))
 in{
     assert(arr.length == 4);
 }
-body{
+do{
     typeof(return) dst;
     dst._vec4.array[] = arr[];
 
@@ -129,7 +129,7 @@ if(isNotVectorOrMatrix!S)
     in{
         assert(i < 4);
     }
-    body{
+    do{
         return _vec4[i];
     }
 
@@ -459,25 +459,25 @@ unittest {
 
 
     // 商
-    assert((quaternion(-58.0, 16, 36, 32) / quaternion(7, 6, 7, 8)).approxEqual(quaternion(1, 2, 3, 4)));
+    assert((quaternion(-58.0, 16, 36, 32) / quaternion(7, 6, 7, 8)).isClose(quaternion(1, 2, 3, 4)));
     assert(quaternion(4.0, 8, 12, 16) / 4 == quaternion(1, 2, 3, 4));
-    assert((16.0 / quaternion(1.0, 2, 3, 4)).approxEqual(quaternion(16.0) / quaternion(1.0, 2, 3, 4)));
+    assert((16.0 / quaternion(1.0, 2, 3, 4)).isClose(quaternion(16.0) / quaternion(1.0, 2, 3, 4)));
     auto p = quaternion(-58.0, 16, 36, 32);
     p /= quaternion(7, 6, 7, 8);
-    assert(p.approxEqual(quaternion(1, 2, 3, 4)));
+    assert(p.isClose(quaternion(1, 2, 3, 4)));
 
     p = quaternion(4.0, 8, 12, 16);
     p /= 4;
-    assert(p.approxEqual(quaternion(1, 2, 3, 4)));
+    assert(p.isClose(quaternion(1, 2, 3, 4)));
 
     // 累乗
     q = quaternion(1, 1, 2, 2);
     p = q ^^ 3;
-    assert(approxEqual(p, q * q * q));
+    assert(isClose(p, q * q * q));
 
     p = q ^^ -3;
-    assert(approxEqual(p, q.inverse * q.inverse * q.inverse));
-    assert(approxEqual(q ^^ 3 * q ^^ -3, quaternion(1, 0, 0, 0)));
+    assert(isClose(p, q.inverse * q.inverse * q.inverse));
+    assert(isClose(q ^^ 3 * q ^^ -3, quaternion(1, 0, 0, 0)));
 }
 
 
@@ -534,7 +534,7 @@ unittest
 /**
 approxEqualの四元数バージョン
 */
-bool approxEqual(alias pred = std.math.approxEqual, E1, E2)(in Quaternion!E1 q1, in Quaternion!E2 q2)
+bool isClose(alias pred = std.math.isClose, E1, E2)(in Quaternion!E1 q1, in Quaternion!E2 q2)
 {
     foreach(i; 0 .. 4)
         if(!binaryFun!pred(q1[i], q2[i]))
@@ -545,7 +545,7 @@ bool approxEqual(alias pred = std.math.approxEqual, E1, E2)(in Quaternion!E1 q1,
 unittest
 {
     auto q = quaternion(1, 2, 3, 4);
-    assert(approxEqual(q, q));
+    assert(isClose(q, q));
 }
 
 
@@ -560,7 +560,7 @@ auto normalize(E)(in Quaternion!E q)
 unittest
 {
     auto q = quaternion(1, 2, 3, 4);
-    assert(std.math.approxEqual(q.normalize.sumOfSquare, 1));
+    assert(std.math.isClose(q.normalize.sumOfSquare, 1));
 }
 import std.stdio;
 
@@ -580,5 +580,5 @@ unittest
     import std.stdio;
 
     auto q = quaternion(1, 2, 3, 4);
-    assert(approxEqual((q * q.inverse), quaternion(1, 0, 0, 0)));
+    assert(isClose((q * q.inverse), quaternion(1, 0, 0, 0)));
 }
